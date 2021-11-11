@@ -46,7 +46,9 @@ public class Server extends JFrame {
 	private Vector waitUser = new Vector(); // 연결된 사용자를 저장할 벡터
 	private Vector<Room> RoomVec = new Vector<Room>(); // 연결된 사용자를 저장할 벡터
 	private static final int BUF_LEN = 128; // Windows 처럼 BUF_LEN 을 정의
-
+	private static final String WHITE = "w";
+	private static final String BLACK = "b";
+	
 	/**
 	 * Launch the application.
 	 */
@@ -390,10 +392,22 @@ public class Server extends JFrame {
 		private Vector<UserService> roomUser = new Vector<UserService>();
 		private int count = 0;
 		private int maxCount;
-	
+		private Vector<Card> cards;
+		
 		public Room(int maxCount) {
 			roomUser = new Vector<UserService>();
 			this.maxCount = maxCount;
+			
+			// 카드 초기화
+			cards = new Vector<Card>();
+			for (int i = 0; i < 12; i++) { 
+				cards.add(new Card(WHITE,i)); // 'w'hite color 카드
+				cards.add(new Card(BLACK,i)); // 'b'lack color 카드
+				if (i == 0) {
+					cards.add(new Card(WHITE,true));
+					cards.add(new Card(BLACK,true));
+				}
+			}
 		}
 		
 		public void addUser(UserService user) {
@@ -401,9 +415,42 @@ public class Server extends JFrame {
 				roomUser.add(user);
 				user.WriteOne("Welcome to Room");
 			}
+			else if(roomUser.size() == maxCount) {
+				startGame();
+			}
+		}
+		
+		public void startGame() {
+			// 카드 나눠주기 // [2-3인] : 4개, [4인] : 3개
+			
+			
 		}
 		
 		
+		
+	}
+	
+	class Card {
+		private String owner;
+		private int cardNum; // 0~11
+		private String cardColor;
+		private Boolean isJocker;
+		
+		public Card(String color, int num) {
+			owner = "RoomId";
+			cardColor = color;
+			cardNum = num;
+			isJocker = false;
+		}
+		public Card(String color, Boolean isJocker) {
+			owner = "RoomId";
+			cardColor = color;
+			cardNum = -1;
+			this.isJocker = isJocker;
+		}
+		public void setOwner(String owner) {
+			this.owner = owner;
+		}
 	}
 	
 }
