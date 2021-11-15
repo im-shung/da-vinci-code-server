@@ -6,8 +6,6 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
-import Server.Room;
-
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JLabel;
@@ -43,8 +41,8 @@ public class Server extends JFrame {
 	private ServerSocket socket; // 서버소켓
 	private Socket client_socket; // accept() 에서 생성된 client 소켓
 	private Vector allUser = new Vector(); // 연결된 사용자를 저장할 벡터
-	private Vector waitUser = new Vector(); // 연결된 사용자를 저장할 벡터
-	private Vector<Room> RoomVec = new Vector<Room>(); // 연결된 사용자를 저장할 벡터
+	private Vector waitUser = new Vector(); // 대기중인 사용자를 저장할 벡터
+	private Vector<Room> roomVec = new Vector<Room>(); // 방 목록을 저장할 벡터
 	private static final int BUF_LEN = 128; // Windows 처럼 BUF_LEN 을 정의
 	private static final String WHITE = "w";
 	private static final String BLACK = "b";
@@ -324,7 +322,65 @@ public class Server extends JFrame {
 				if (cm.code.length()==0)
 					break;
 				AppendObject(cm);
+				// 로그인
 				if (cm.code.matches("100")) {
+					UserName = cm.UserName;
+					UserStatus = "O"; // Online 상태
+					Login();
+				}
+				// 로그 아웃
+				if (cm.code.matches("200")) {
+					Logout();
+					break;
+				}
+				// 방 목록 요청
+				if (cm.code.matches("300")) {
+
+				}
+				// 방 생성 요청 : data = roomName maxCount passWd
+				if (cm.code.matches("400")) {
+					String[] args = cm.data.split("//"); // 단어들을 분리한다.
+					String roomName = args[0];
+					int maxCount = Integer.parseInt(args[1]);
+					String passWd = args[2];
+					Room room = new Room(roomName, maxCount, passWd);
+					roomVec.add(room);
+					AppendText("현재 방 수 " + roomVec.size());
+					room.addUser(this);
+				}
+				// 방 참가 요청
+				if (cm.code.matches("500")) {
+
+				}
+				// 게임 시작, 코인 배팅
+				if (cm.code.matches("600")) {
+
+				}
+				// 카드 뽑기
+				if (cm.code.matches("700")) {
+
+				}
+				// 조커 위치 지정
+				if (cm.code.matches("800")) {
+
+				}
+				// 카드 맞추기
+				if (cm.code.matches("900")) {
+
+				}
+				// 패스
+				if (cm.code.matches("1000")) {
+
+				}
+				// 카드 공개
+				if (cm.code.matches("1100")) {
+
+				}
+				// 랭킹보기 요청
+				if (cm.code.matches("1200")) {
+
+				}
+				/*if (cm.code.matches("100")) {
 					UserName = cm.UserName;
 					UserStatus = "O"; // Online 상태
 					Login();
@@ -382,7 +438,7 @@ public class Server extends JFrame {
 					break;
 				} else if (cm.code.matches("300")) {
 					WriteAllObject(cm);
-				}
+				}*/
 			} // while
 		} // run
 	}
@@ -392,11 +448,18 @@ public class Server extends JFrame {
 		private Vector<UserService> roomUser = new Vector<UserService>();
 		private int count = 0;
 		private int maxCount;
+		private String roomName;
+		private String passWd;
 		private Vector<Card> cards;
 		
-		public Room(int maxCount) {
+		public Room(String roomName, int maxCount, String passWd) {
 			roomUser = new Vector<UserService>();
 			this.maxCount = maxCount;
+			this.roomName = roomName;
+			this.passWd = passWd;
+
+			String roomInfo = String.format("방 이름: %s / 제한 인원: %d / 비밀번호: %s", roomName, maxCount, passWd);
+			AppendText("새로운 방 생성 [" + roomInfo + "]");
 			
 			// 카드 초기화
 			cards = new Vector<Card>();
