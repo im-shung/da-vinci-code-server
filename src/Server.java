@@ -10,10 +10,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
-import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -24,6 +22,8 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 import java.awt.event.ActionEvent;
 import javax.swing.SwingConstants;
@@ -42,7 +42,7 @@ public class Server extends JFrame {
 	private Socket client_socket; // accept() 에서 생성된 client 소켓
 	private Vector allUser = new Vector(); // 연결된 사용자를 저장할 벡터
 	private Vector waitUser = new Vector(); // 대기중인 사용자를 저장할 벡터
-	private Vector<Room> roomVec = new Vector<Room>(); // 방 목록을 저장할 벡터
+	private RoomManager roomManager = new RoomManager(); // 방들을 관리할 클래스
 	private static final int BUF_LEN = 128; // Windows 처럼 BUF_LEN 을 정의
 	private static final String WHITE = "w";
 	private static final String BLACK = "b";
@@ -257,10 +257,9 @@ public class Server extends JFrame {
 			    oos.writeObject(obj.code);
 			    oos.writeObject(obj.UserName);
 			    oos.writeObject(obj.data);
-			    if (obj.code.equals("300")) {
-				    oos.writeObject(obj.imgbytes);
-				    //oos.writeObject(obj.bimg);
-			    }
+//			    if (obj.code.equals("300")) { // 방 목록 요청
+//				    oos.writeObject(obj.roomsList);
+//			    }
 			} 
 			catch (IOException e) {
 				AppendText("oos.writeObject(ob) error");		
@@ -292,12 +291,12 @@ public class Server extends JFrame {
 				cm.UserName = (String) obj;
 				obj = ois.readObject();
 				cm.data = (String) obj;
-				if (cm.code.equals("300")) {
-					obj = ois.readObject();
-					cm.imgbytes = (byte[]) obj;
+//				if (cm.code.equals("300")) {
 //					obj = ois.readObject();
-//					cm.bimg = (BufferedImage) obj;
-				}
+//					cm.imgbytes = (byte[]) obj;
+////					obj = ois.readObject();
+////					cm.bimg = (BufferedImage) obj;
+//				}
 			} catch (ClassNotFoundException e) {
 				// TODO Auto-generated catch block
 				Logout();
@@ -335,7 +334,13 @@ public class Server extends JFrame {
 				}
 				// 방 목록 요청
 				if (cm.code.matches("300")) {
-
+					List<String> roomsListInfo = roomManager.getRoomsListInfo();
+					for (String s : roomsListInfo) {
+						AppendText(s);
+					}
+					ChatMsg obcm = new ChatMsg(UserName,"300","RoomList");
+					//obcm.setRoomsListInfo(roomsListInfo);
+					WriteChatMsg(obcm);
 				}
 				// 방 생성 요청 : data = roomName maxCount passWd
 				if (cm.code.matches("400")) {
@@ -344,9 +349,10 @@ public class Server extends JFrame {
 					int maxCount = Integer.parseInt(args[1]);
 					String passWd = args[2];
 					Room room = new Room(roomName, maxCount, passWd);
-					roomVec.add(room);
-					AppendText("현재 방 수 " + roomVec.size());
+					roomManager.addRoom(room);
+					AppendText("현재 방 수 " + roomManager.roomVec.size());
 					room.addUser(this);
+					/*** maxCount가 2 미만이면 요청 거절해야 함  ***/
 				}
 				// 방 참가 요청
 				if (cm.code.matches("500")) {
@@ -442,11 +448,36 @@ public class Server extends JFrame {
 			} // while
 		} // run
 	}
-	
+	// Room 관리 클래스
+	class RoomManager {
+		private Vector<Room> roomVec = new Vector<Room>(); // 현재 서버에 존재하는 Room 목록을 저장하는 벡터
+
+		public Vector<Room> getRoomVec() {
+			return roomVec;
+		}
+		public void addRoom(Room r){
+			roomVec.add(r);
+		}
+		public void removeRoom(Room r){
+			roomVec.remove(r);
+		}
+		public String getRoomInfo(Room r) {
+			return r.roomName+"//"+r.maxCount+"//"+r.currentCount;
+		}
+		public List<String> getRoomsListInfo() {
+			List<String> roomList = new ArrayList<String>();
+			for (Room room : roomVec) {
+				String info = getRoomInfo(room);
+				roomList.add(info);
+			}
+			return roomList;
+		}
+	}
+
 	class Room {
 		// Room에 들어와 있는 사용자 벡터
 		private Vector<UserService> roomUser = new Vector<UserService>();
-		private int count = 0;
+		private int currentCount = 0;
 		private int maxCount;
 		private String roomName;
 		private String passWd;
@@ -477,8 +508,9 @@ public class Server extends JFrame {
 			if(roomUser.size() <= maxCount) {
 				roomUser.add(user);
 				user.WriteOne("Welcome to Room");
+				currentCount ++;
 			}
-			else if(roomUser.size() == maxCount) {
+			else if(currentCount == maxCount) {
 				startGame();
 			}
 		}
@@ -488,7 +520,7 @@ public class Server extends JFrame {
 			
 			
 		}
-		
+
 		
 		
 	}
