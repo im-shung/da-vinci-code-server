@@ -312,22 +312,28 @@ public class Server extends JFrame {
 			return cm;
 		}
 		// 모든 User들에게 List를 방송.
-		public void WriteAllList(ChatList obj) {
+		public void WriteAllList(ChatMsg obj) {
 			for (int i = 0; i < user_vc.size(); i++) {
 				UserService user = (UserService) user_vc.elementAt(i);
 				if (user.UserStatus == "O")
 					user.WriteChatList(obj);
 			}
 		}
+		// 방 안의 User들에게 List를 방송.
+		public void WriteRoomUserList(ChatMsg obj, Vector<UserService> roomUser) {
+			for (int i = 0; i < roomUser.size(); i++) {
+				UserService user = (UserService) roomUser.elementAt(i);
+				if (user.UserStatus == "O")
+					user.WriteChatList(obj);
+			}
+		}
 		// 클라이언트에게 목록 형식으로 보낼 때 사용
-		public void WriteChatList (ChatList obj) {
+		public void WriteChatList (ChatMsg obj) {
 			try {
 				oos.writeObject(obj.code);
 				oos.writeObject(obj.UserName);
-				oos.writeObject(obj.list);
-			    if (obj.code.equals("300")) { // 방 목록 요청
-				    oos.writeObject(obj.list);
-			    }
+				oos.writeObject(obj.data);
+			   	oos.writeObject(obj.list);
 			}
 			catch (IOException e) {
 				AppendText("oos.writeObject(ob) error");
@@ -371,7 +377,8 @@ public class Server extends JFrame {
 				// 방 목록 요청
 				if (cm.code.matches("300")) {
 					List<String> roomsListInfo = roomManager.getRoomsListInfo();
-					ChatList obcm = new ChatList(UserName,"300",roomsListInfo);
+					ChatMsg obcm = new ChatMsg(UserName,"300","RoomList");
+					obcm.setList(roomsListInfo);
 					AppendText(UserName+"에게 방 목록 전송");
 					WriteChatList(obcm);
 				}
@@ -426,6 +433,14 @@ public class Server extends JFrame {
 						WriteChatMsg(obcm);
 					}
 				}
+				// 방 안의 유저 목록
+				if (cm.code.matches("ROOMUSERLIST")) {
+					String roomUID = cm.data; // 단어들을 분리한다.
+					Room room = roomManager.findRoomByPwd(roomUID);
+					ChatMsg obcm = new ChatMsg(UserName,"ROOMUSERLIST","RoomUserList");
+					obcm.setList(room.getRoomUserList());
+					WriteRoomUserList(obcm,room.roomUser); // 방 안의 모든 유저들에게 전송
+				}
 				// 게임 시작, 코인 배팅
 				if (cm.code.matches("600")) {
 
@@ -434,7 +449,7 @@ public class Server extends JFrame {
 				if (cm.code.matches("700")) {
 
 				}
-				// 조커 위치 지정
+				// 조커 위치 지정8
 				if (cm.code.matches("800")) {
 
 				}
@@ -454,65 +469,6 @@ public class Server extends JFrame {
 				if (cm.code.matches("1200")) {
 
 				}
-				/*if (cm.code.matches("100")) {
-					UserName = cm.UserName;
-					UserStatus = "O"; // Online 상태
-					Login();
-				} else if (cm.code.matches("200")) {
-					String msg = String.format("[%s] %s", cm.UserName, cm.data);
-					AppendText(msg); // server 화면에 출력
-					String[] args = msg.split(" "); // 단어들을 분리한다.
-					if (args.length == 1) { // Enter key 만 들어온 경우 Wakeup 처리만 한다.
-						UserStatus = "O";
-					} else if (args[1].matches("/exit")) {
-						Logout();
-						break;
-					} else if (args[1].matches("/list")) {
-						WriteOne("User list\n");
-						WriteOne("Name\tStatus\n");
-						WriteOne("-----------------------------\n");
-						for (int i = 0; i < user_vc.size(); i++) {
-							UserService user = (UserService) user_vc.elementAt(i);
-							WriteOne(user.UserName + "\t" + user.UserStatus + "\n");
-						}
-						WriteOne("-----------------------------\n");
-					} else if (args[1].matches("/sleep")) {
-						UserStatus = "S";
-					} else if (args[1].matches("/wakeup")) {
-						UserStatus = "O";
-					} else if (args[1].matches("/to")) { // 귓속말
-						for (int i = 0; i < user_vc.size(); i++) {
-							UserService user = (UserService) user_vc.elementAt(i);
-							if (user.UserName.matches(args[2]) && user.UserStatus.matches("O")) {
-								String msg2 = "";
-								for (int j = 3; j < args.length; j++) {// 실제 message 부분
-									msg2 += args[j];
-									if (j < args.length - 1)
-										msg2 += " ";
-								}
-								// /to 빼고.. [귓속말] [user1] Hello user2..
-								user.WritePrivate(args[0] + " " + msg2 + "\n");
-								//user.WriteOne("[귓속말] " + args[0] + " " + msg2 + "\n");
-								break;
-							}
-						}
-					} else if (args[1].matches("/room")) {
-						int maxCount = Integer.parseInt(args[2]);
-						Room room = new Room(maxCount);
-						RoomVec.add(room);
-						room.addUser(this);
-				
-					}else { // 일반 채팅 메시지
-						UserStatus = "O";
-						//WriteAll(msg + "\n"); // Write All
-						WriteAllObject(cm);
-					}
-				} else if (cm.code.matches("400")) { // logout message 처리
-					Logout();
-					break;
-				} else if (cm.code.matches("300")) {
-					WriteAllObject(cm);
-				}*/
 			} // while
 		} // run
 	}
@@ -545,13 +501,22 @@ public class Server extends JFrame {
 			}
 			return roomList;
 		}
-		// id와 패스워드로 방 찾기
-		public Room findRoomByPwd(String requestedId, String requestedPasswd) {
+		// UID와 패스워드로 방 찾기
+		public Room findRoomByPwd (String requestedId, String requestedPasswd) {
 			for (Room room : roomVec) {
-				if(requestedId.equals(room.getRoomUID())){ // getRoomUID() // room.roomName
+				if(requestedId.equals(room.getRoomUID())){ // getRoomUID()
 					if(requestedPasswd.equals(room.passWd)) {
 						return room;
 					}
+				}
+			}
+			return null;
+		}
+		// UID로 방 찾기
+		public Room findRoomByPwd (String requestedId) {
+			for (Room room : roomVec) {
+				if(requestedId.equals(room.getRoomUID())){ // getRoomUID()
+					return room;
 				}
 			}
 			return null;
@@ -594,17 +559,24 @@ public class Server extends JFrame {
 				}
 			}
 		}
-
+		// Room UID
 		public String getRoomUID() {
 			return roomUID.toString();
 		}
-
+		// Room에 사용자 추가
 		public void addUser (UserService user) {
 			roomUser.add(user);
 			user.WriteOne("Welcome to Room");
 			currentCount ++;
 		}
-		
+		public List<String> getRoomUserList() {
+			List<String> list = new ArrayList<String>();
+			for (UserService user : roomUser) {
+				list.add(user.UserName);
+			}
+			return list;
+		}
+		// 게임 시작
 		public void startGame() {
 			// 카드 나눠주기 // [2-3인] : 4개, [4인] : 3개
 			
@@ -614,7 +586,7 @@ public class Server extends JFrame {
 		
 		
 	}
-	
+	// 카드 클래스
 	class Card {
 		private String owner;
 		private int cardNum; // 0~11
