@@ -320,11 +320,10 @@ public class Server extends JFrame {
 			}
 		}
 		// 방 안의 User들에게 List를 방송.
-		public void WriteRoomUserList(ChatMsg obj, Vector<UserService> roomUser) {
-			for (int i = 0; i < roomUser.size(); i++) {
-				UserService user = (UserService) roomUser.elementAt(i);
-				if (user.UserStatus == "O")
-					user.WriteChatList(obj);
+		public void WriteRoomUserList(ChatMsg obj, Room room) {
+			for (int i = 0; i < room.roomUser.size(); i++) {
+				UserService user = room.roomUser.elementAt(i);
+				user.WriteChatMsg(obj);
 			}
 		}
 		// 클라이언트에게 목록 형식으로 보낼 때 사용
@@ -436,10 +435,14 @@ public class Server extends JFrame {
 				// 방 안의 유저 목록
 				if (cm.code.matches("ROOMUSERLIST")) {
 					String roomUID = cm.data; // 단어들을 분리한다.
-					Room room = roomManager.findRoomByPwd(roomUID);
-					ChatMsg obcm = new ChatMsg(UserName,"ROOMUSERLIST","RoomUserList");
-					obcm.setList(room.getRoomUserList());
-					WriteRoomUserList(obcm,room.roomUser); // 방 안의 모든 유저들에게 전송
+					String users = roomManager.findUsersInRoom(roomUID);
+					Room room = roomManager.findRoomByUID(roomUID);
+					if (users != null){
+						AppendText("방 ["+room.roomName+"] 인원 업데이트");
+						ChatMsg obcm = new ChatMsg(UserName,"ROOMUSERLIST",users);
+						WriteRoomUserList(obcm,room); // 방 안의 모든 유저들에게 전송
+					}
+
 				}
 				// 게임 시작, 코인 배팅
 				if (cm.code.matches("600")) {
@@ -501,6 +504,15 @@ public class Server extends JFrame {
 			}
 			return roomList;
 		}
+		// UID로 방 찾기
+		public Room findRoomByUID (String requestedId) {
+			for (Room room : roomVec) {
+				if(requestedId.equals(room.getRoomUID())){ // getRoomUID()
+					return room;
+				}
+			}
+			return null;
+		}
 		// UID와 패스워드로 방 찾기
 		public Room findRoomByPwd (String requestedId, String requestedPasswd) {
 			for (Room room : roomVec) {
@@ -512,11 +524,11 @@ public class Server extends JFrame {
 			}
 			return null;
 		}
-		// UID로 방 찾기
-		public Room findRoomByPwd (String requestedId) {
+		// UID로 방 이용자 모두 찾기
+		public String findUsersInRoom (String UID) {
 			for (Room room : roomVec) {
-				if(requestedId.equals(room.getRoomUID())){ // getRoomUID()
-					return room;
+				if (UID.equals(room.getRoomUID())){ // getRoomUID()
+					return room.getRoomUserList();
 				}
 			}
 			return null;
@@ -569,12 +581,13 @@ public class Server extends JFrame {
 			user.WriteOne("Welcome to Room");
 			currentCount ++;
 		}
-		public List<String> getRoomUserList() {
-			List<String> list = new ArrayList<String>();
+		public String getRoomUserList() {
+			String users = "";
 			for (UserService user : roomUser) {
-				list.add(user.UserName);
+				users += user.UserName+"//";
 			}
-			return list;
+			System.out.println("getRoomUserList="+users);
+			return users;
 		}
 		// 게임 시작
 		public void startGame() {
