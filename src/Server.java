@@ -1,6 +1,6 @@
 //JavaObjServer.java ObjectStream 기반 채팅 Server
 
-import java.awt.EventQueue;
+import java.awt.*;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -32,7 +32,7 @@ import javax.swing.SwingConstants;
 public class Server extends JFrame {
 
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
@@ -47,7 +47,7 @@ public class Server extends JFrame {
 	private static final int BUF_LEN = 128; // Windows 처럼 BUF_LEN 을 정의
 	private static final String WHITE = "w";
 	private static final String BLACK = "b";
-	
+
 	/**
 	 * Launch the application.
 	 */
@@ -69,14 +69,14 @@ public class Server extends JFrame {
 	 */
 	public Server() {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 500, 440);
+		setBounds(100, 100, 640, 440);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
 		contentPane.setLayout(null);
 
 		JScrollPane scrollPane = new JScrollPane();
-		scrollPane.setBounds(12, 10, 480, 298);
+		scrollPane.setBounds(12, 10, 600, 298);
 		contentPane.add(scrollPane);
 
 		textArea = new JTextArea();
@@ -84,13 +84,13 @@ public class Server extends JFrame {
 		scrollPane.setViewportView(textArea);
 
 		JLabel lblNewLabel = new JLabel("Port Number");
-		lblNewLabel.setBounds(13, 318, 87, 26);
+		lblNewLabel.setBounds(200, 318, 87, 26);
 		contentPane.add(lblNewLabel);
 
 		txtPortNumber = new JTextField();
 		txtPortNumber.setHorizontalAlignment(SwingConstants.CENTER);
 		txtPortNumber.setText("30000");
-		txtPortNumber.setBounds(112, 318, 199, 26);
+		txtPortNumber.setBounds(280, 318, 199, 26);
 		contentPane.add(txtPortNumber);
 		txtPortNumber.setColumns(10);
 
@@ -111,7 +111,7 @@ public class Server extends JFrame {
 				accept_server.start();
 			}
 		});
-		btnServerStart.setBounds(12, 356, 300, 35);
+		btnServerStart.setBounds(12, 356, 600, 35);
 		contentPane.add(btnServerStart);
 	}
 
@@ -145,9 +145,11 @@ public class Server extends JFrame {
 
 	public void AppendObject(ChatMsg msg) {
 		// textArea.append("사용자로부터 들어온 object : " + str+"\n");
-		textArea.append("code = " + msg.code + "\n");
+		String s = String.format("From 【%s】 code = %s ┃ data = %s\n", msg.UserName, msg.code, msg.data);
+		textArea.append(s);
+		/*textArea.append("code = " + msg.code + "\n");
 		textArea.append("id = " + msg.UserName + "\n");
-		textArea.append("data = " + msg.data + "\n");
+		textArea.append("data = " + msg.data + "\n");*/
 		textArea.setCaretPosition(textArea.getText().length());
 	}
 
@@ -182,7 +184,7 @@ public class Server extends JFrame {
 		}
 
 		public void Login() {
-			AppendText("새로운 참가자 " + UserName + " 입장.");
+			AppendText("새로운 참가자 [" + UserName + "] 입장.");
 			WriteOne("Welcome to Java chat server\n");
 			WriteOne(UserName + "님 환영합니다.\n"); // 연결된 사용자에게 정상접속을 알림
 			String msg = "[" + UserName + "]님이 입장 하였습니다.\n";
@@ -223,6 +225,48 @@ public class Server extends JFrame {
 			}
 		}
 
+		// 모든 User들에게 List를 방송.
+		public void WriteAllList(ChatMsg obj) {
+			for (int i = 0; i < user_vc.size(); i++) {
+				UserService user = (UserService) user_vc.elementAt(i);
+				if (user.UserStatus == "O")
+					user.WriteChatList(obj);
+			}
+		}
+		// 방 안의 User들에게 List를 방송.
+		public void WriteRoomUserList(ChatMsg obj, Room room) {
+			for (int i = 0; i < room.roomUser.size(); i++) {
+				String userName = room.roomUser.elementAt(i);
+				UserService userService = (UserService) user_vc.elementAt(i);
+				if (userService.UserName == userName)
+					userService.WriteChatMsg(obj);
+			}
+		}
+		// 클라이언트에게 목록 형식으로 보낼 때 사용
+		public void WriteChatList (ChatMsg obj) {
+			try {
+				oos.writeObject(obj.code);
+				oos.writeObject(obj.UserName);
+				oos.writeObject(obj.data);
+				oos.writeObject(obj.list);
+				oos.reset();
+			}
+			catch (IOException e) {
+				AppendText("oos.writeObject(ob) error");
+				try {
+					ois.close();
+					oos.close();
+					client_socket.close();
+					client_socket = null;
+					ois = null;
+					oos = null;
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+//            Logout();
+			}
+		}
 		// Windows 처럼 message 제외한 나머지 부분은 NULL 로 만들기 위한 함수
 		public byte[] MakePacket(String msg) {
 			byte[] packet = new byte[BUF_LEN];
@@ -243,96 +287,26 @@ public class Server extends JFrame {
 
 		// UserService Thread가 담당하는 Client 에게 1:1 전송
 		public void WriteOne(String msg) {
-			ChatMsg obcm = new ChatMsg("SERVER", "200", msg);
+			ChatMsg obcm = new ChatMsg("SERVER", "BROADCAST", msg);
 			WriteChatMsg(obcm);
 		}
 
 		// 귓속말 전송
 		public void WritePrivate(String msg) {
-			ChatMsg obcm = new ChatMsg("귓속말", "200", msg);
+			ChatMsg obcm = new ChatMsg("귓속말", "BROADCAST", msg);
 			WriteChatMsg(obcm);
 		}
 		//
 		public void WriteChatMsg(ChatMsg obj) {
 			try {
-			    oos.writeObject(obj.code);
-			    oos.writeObject(obj.UserName);
-			    oos.writeObject(obj.data);
-//			    if (obj.code.equals("300")) { // 방 목록 요청
-//				    oos.writeObject(obj.roomsList);
-//			    }
-			} 
-			catch (IOException e) {
-				AppendText("oos.writeObject(ob) error");		
-				try {
-					ois.close();
-					oos.close();
-					client_socket.close();
-					client_socket = null;
-					ois = null;
-					oos = null;				
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-				Logout();
-			
-			}
-		}
-		
-		public ChatMsg ReadChatMsg() {
-			Object obj = null;
-			String msg = null;
-			ChatMsg cm = new ChatMsg("", "", "");
-			// Android와 호환성을 위해 각각의 Field를 따로따로 읽는다.
-			try {
-				obj = ois.readObject();
-				cm.code = (String) obj;
-				obj = ois.readObject();
-				cm.UserName = (String) obj;
-				obj = ois.readObject();
-				cm.data = (String) obj;
-//				if (cm.code.equals("300")) {
-//					obj = ois.readObject();
-//					cm.imgbytes = (byte[]) obj;
-////					obj = ois.readObject();
-////					cm.bimg = (BufferedImage) obj;
-//				}
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				Logout();
-				e.printStackTrace();
-				return null;
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				Logout();
-				return null;
-			}
-			return cm;
-		}
-		// 모든 User들에게 List를 방송.
-		public void WriteAllList(ChatMsg obj) {
-			for (int i = 0; i < user_vc.size(); i++) {
-				UserService user = (UserService) user_vc.elementAt(i);
-				if (user.UserStatus == "O")
-					user.WriteChatList(obj);
-			}
-		}
-		// 방 안의 User들에게 List를 방송.
-		public void WriteRoomUserList(ChatMsg obj, Room room) {
-			for (int i = 0; i < room.roomUser.size(); i++) {
-				UserService user = room.roomUser.elementAt(i);
-				user.WriteChatMsg(obj);
-			}
-		}
-		// 클라이언트에게 목록 형식으로 보낼 때 사용
-		public void WriteChatList (ChatMsg obj) {
-			try {
 				oos.writeObject(obj.code);
 				oos.writeObject(obj.UserName);
 				oos.writeObject(obj.data);
-			   	oos.writeObject(obj.list);
+				oos.reset();
+
+//             if (obj.code.equals("300")) { // 방 목록 요청
+//                oos.writeObject(obj.roomsList);
+//             }
 			}
 			catch (IOException e) {
 				AppendText("oos.writeObject(ob) error");
@@ -347,13 +321,47 @@ public class Server extends JFrame {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
-//				Logout();
+				Logout();
+
 			}
 		}
+
+		public ChatMsg ReadChatMsg() {
+			Object obj = null;
+			String msg = null;
+			ChatMsg cm = new ChatMsg("", "", "");
+			// Android와 호환성을 위해 각각의 Field를 따로따로 읽는다.
+			try {
+				obj = ois.readObject();
+				cm.code = (String) obj;
+				obj = ois.readObject();
+				cm.UserName = (String) obj;
+				obj = ois.readObject();
+				cm.data = (String) obj;
+//            if (cm.code.equals("300")) {
+//               obj = ois.readObject();
+//               cm.imgbytes = (byte[]) obj;
+////               obj = ois.readObject();
+////               cm.bimg = (BufferedImage) obj;
+//            }
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				Logout();
+				e.printStackTrace();
+				return null;
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				Logout();
+				return null;
+			}
+			return cm;
+		}
+
 		// run
 		public void run() {
 			while (true) { // 사용자 접속을 계속해서 받기 위해 while문
-				ChatMsg cm = null; 
+				ChatMsg cm = null;
 				if (client_socket == null)
 					break;
 				cm = ReadChatMsg();
@@ -363,72 +371,71 @@ public class Server extends JFrame {
 					break;
 				AppendObject(cm);
 				// 로그인
-				if (cm.code.matches("100")) {
+				if (cm.code.matches("LOGIN")) {
 					UserName = cm.UserName;
 					UserStatus = "O"; // Online 상태
 					Login();
 				}
 				// 로그 아웃
-				if (cm.code.matches("200")) {
+				if (cm.code.matches("LOGOUT")) {
 					Logout();
 					break;
 				}
 				// 방 목록 요청
-				if (cm.code.matches("300")) {
-					List<String> roomsListInfo = roomManager.getRoomsListInfo();
-					ChatMsg obcm = new ChatMsg(UserName,"300","RoomList");
+				if (cm.code.matches("ROOMLIST")) {
+					ArrayList<String> roomsListInfo = roomManager.getRoomsListInfo();
+					ChatMsg obcm = new ChatMsg(UserName,"ROOMLIST","RoomList");
 					obcm.setList(roomsListInfo);
-					AppendText(UserName+"에게 방 목록 전송");
+					AppendText(UserName+" 에게 방 목록 전송");
 					WriteChatList(obcm);
 				}
 				// 방 생성 요청 : data = roomName maxCount passWd
-				if (cm.code.matches("400")) {
+				if (cm.code.matches("ROOMCREATE")) {
 					String[] args = cm.data.split("//"); // 단어들을 분리한다.
 					String roomName = args[0];
 					int maxCount = Integer.parseInt(args[1]);
 					String passWd = args[2];
 					if (maxCount < 2) { // 인원 수 미달
-						AppendText("방 생성 요청을 인원 수 미달로 거절합니다.");
-						ChatMsg obcm = new ChatMsg(UserName,"400","MaxCountDown");
+						AppendText(UserName + "의 방 생성 요청을 인원 수 미달로 거절합니다.");
+						ChatMsg obcm = new ChatMsg(UserName,"ROOMCREATE","MaxCountDown");
 						WriteChatMsg(obcm);
 					}
 					else if (maxCount > 4) { // 인원 수 초과
-						AppendText("방 생성 요청을 인원 수 초과로 거절합니다.");
-						ChatMsg obcm = new ChatMsg(UserName,"400","MaxCountUp");
+						AppendText(UserName + "의 방 생성 요청을 인원 수 초과로 거절합니다.");
+						ChatMsg obcm = new ChatMsg(UserName,"ROOMCREATE","MaxCountUp");
 						WriteChatMsg(obcm);
 					}
 					else { // 인원 수 적절 -> 방을 생성
 						Room room = new Room(roomName, maxCount, passWd);
 						roomManager.addRoom(room);
 						AppendText("현재 방 수 " + roomManager.roomVec.size());
-						room.addUser(this); // 방에 유저 참가
-						ChatMsg obcm = new ChatMsg(UserName,"400",roomManager.getRoomInfo(room));
+						ChatMsg obcm = new ChatMsg(UserName,"ROOMCREATE",roomManager.getRoomInfo(room));
 						WriteAllObject(obcm); // 모든 유저들에게 방 정보를 알린다.
 					}
 				}
 				// 방 참가 요청 : data = roomId  passWd
-				if (cm.code.matches("500")) {
+				if (cm.code.matches("ROOMIN")) {
 					String[] args = cm.data.split("//"); // 단어들을 분리한다.
 					String requestedId = args[0]; // 방 ID
 					String requestedPassWd = args[1]; // 방 패스워드
 					Room room = roomManager.findRoomByPwd(requestedId,requestedPassWd);
 					if(room != null) { // 해당 방이 있으면
 						if(room.currentCount < room.maxCount ) { // 방 인원 수가 최대 인원 수 보다 적을 때
-							AppendText("["+room.roomName+"]"+"에 "+UserName+" 참가");
-							String roomInfo = roomManager.getRoomInfo(room);
-							ChatMsg obcm = new ChatMsg(UserName,"500",roomInfo);
-							WriteAllObject(obcm); // 모든 유저들에게 방 정보 변경을 알린다.
 							room.addUser(this);
+							AppendText("방 ["+room.roomName+"] "+"에 "+UserName+" 참가");
+							String roomInfo = roomManager.getRoomInfo(room);
+							ChatMsg obcm = new ChatMsg(UserName,"ROOMIN",roomInfo);
+							WriteAllObject(obcm); // 모든 유저들에게 방 정보 변경을 알린다.
 						}
 						else { // 방 인원 수가 다 찼을 때
 							AppendText("["+room.roomName+"] 의 인원이 다 찼습니다.");
-							ChatMsg obcm = new ChatMsg(UserName,"500","MaxCount");
+							ChatMsg obcm = new ChatMsg(UserName,"ROOMIN","MaxCount");
 							WriteOne("Room count is max");
 						}
 					}
 					else { // 방이 없으면
 						AppendText("["+requestedId+"]"+"은 존재하지 않습니다.");
-						ChatMsg obcm = new ChatMsg(UserName,"500","NotExist"); // 요청 보낸 유저에게 참가 거절 메세지를 보낸다.
+						ChatMsg obcm = new ChatMsg(UserName,"ROOMIN","NotExist"); // 요청 보낸 유저에게 참가 거절 메세지를 보낸다.
 						WriteChatMsg(obcm);
 					}
 				}
@@ -438,11 +445,10 @@ public class Server extends JFrame {
 					String users = roomManager.findUsersInRoom(roomUID);
 					Room room = roomManager.findRoomByUID(roomUID);
 					if (users != null){
-						AppendText("방 ["+room.roomName+"] 인원 업데이트");
+						AppendText("방 ["+room.roomName+"] 정보 유저들에게 전송");
 						ChatMsg obcm = new ChatMsg(UserName,"ROOMUSERLIST",users);
 						WriteRoomUserList(obcm,room); // 방 안의 모든 유저들에게 전송
 					}
-
 				}
 				// 게임 시작, 코인 배팅
 				if (cm.code.matches("600")) {
@@ -484,8 +490,6 @@ public class Server extends JFrame {
 		}
 		public void addRoom(Room r){
 			roomVec.add(r);
-			AppendText("Room 벡터");
-			AppendText("["+r.roomName+"] "+"["+r.passWd+"]");
 		}
 		public void removeRoom(Room r){
 			roomVec.remove(r);
@@ -496,8 +500,8 @@ public class Server extends JFrame {
 			return r.roomName+"//"+r.roomUID+"//"+r.maxCount+"//"+r.currentCount;
 		}
 		// 방 목록
-		public List<String> getRoomsListInfo() {
-			List<String> roomList = new ArrayList<String>();
+		public ArrayList<String> getRoomsListInfo() {
+			ArrayList<String> roomList = new ArrayList<String>();
 			for (Room room : roomVec) {
 				String info = getRoomInfo(room);
 				roomList.add(info);
@@ -540,7 +544,7 @@ public class Server extends JFrame {
 
 	class Room {
 		// Room에 들어와 있는 사용자 벡터
-		private Vector<UserService> roomUser = new Vector<UserService>();
+		private Vector<String> roomUser;
 		private int currentCount = 0;
 		private int maxCount;
 
@@ -549,9 +553,9 @@ public class Server extends JFrame {
 		private String passWd;
 
 		private Vector<Card> cards;
-		
+
 		public Room(String roomName, int maxCount, String passWd) {
-			roomUser = new Vector<UserService>();
+			roomUser = new Vector<String>();
 			this.maxCount = maxCount;
 			this.roomName = roomName;
 			this.passWd = passWd;
@@ -562,7 +566,7 @@ public class Server extends JFrame {
 
 			// 카드 초기화
 			cards = new Vector<Card>();
-			for (int i = 0; i < 12; i++) { 
+			for (int i = 0; i < 12; i++) {
 				cards.add(new Card(WHITE,i)); // 'w'hite color 카드
 				cards.add(new Card(BLACK,i)); // 'b'lack color 카드
 				if (i == 0) {
@@ -577,14 +581,14 @@ public class Server extends JFrame {
 		}
 		// Room에 사용자 추가
 		public void addUser (UserService user) {
-			roomUser.add(user);
+			roomUser.add(user.UserName);
 			user.WriteOne("Welcome to Room");
 			currentCount ++;
 		}
 		public String getRoomUserList() {
 			String users = "";
-			for (UserService user : roomUser) {
-				users += user.UserName+"//";
+			for (String userName : roomUser) {
+				users += userName+"//";
 			}
 			System.out.println("getRoomUserList="+users);
 			return users;
@@ -592,12 +596,12 @@ public class Server extends JFrame {
 		// 게임 시작
 		public void startGame() {
 			// 카드 나눠주기 // [2-3인] : 4개, [4인] : 3개
-			
-			
+
+
 		}
 
-		
-		
+
+
 	}
 	// 카드 클래스
 	class Card {
@@ -605,7 +609,7 @@ public class Server extends JFrame {
 		private int cardNum; // 0~11
 		private String cardColor;
 		private Boolean isJocker;
-		
+
 		public Card(String color, int num) {
 			owner = "RoomId";
 			cardColor = color;
@@ -622,5 +626,5 @@ public class Server extends JFrame {
 			this.owner = owner;
 		}
 	}
-	
+
 }
