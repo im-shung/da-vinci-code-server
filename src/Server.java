@@ -241,7 +241,7 @@ public class Server extends JFrame {
                 String userName = room.roomUser.elementAt(i);
                 UserService userService = (UserService) user_vc.elementAt(i);
                 if (userService.UserName == userName)
-                    userService.WriteChatMsg(obj);
+                    userService.WriteChatList(obj);
             }
         }
 
@@ -436,18 +436,28 @@ public class Server extends JFrame {
                 // 방 안의 유저 목록
                 if (cm.code.matches("ROOMUSERLIST")) {
                     String roomUID = cm.data; // 단어들을 분리한다.
-                    String users = roomManager.findUsersInRoom(roomUID);
+                    ArrayList<String> users = roomManager.findUsersInRoom(roomUID);
                     Room room = roomManager.findRoomByUID(roomUID);
                     if (users != null) {
                         AppendText("방 [" + room.roomName + "] 정보 유저들에게 전송");
-                        ChatMsg obcm = new ChatMsg(UserName, "ROOMUSERLIST", users);
+                        ChatMsg obcm = new ChatMsg(UserName, "ROOMUSERLIST", "send room user list!");
+                        obcm.setList(users);
                         WriteRoomUserList(obcm, room); // 방 안의 모든 유저들에게 전송
                         WriteRoomUserList(obcm, room); // 방 안의 모든 유저들에게 전송
                     }
                 }
                 // 게임 시작, 코인 배팅
-                if (cm.code.matches("600")) {
-
+                if (cm.code.matches("GAMESTART")) {
+                    String roomUID = cm.data; // 단어들을 분리한다.
+                    ArrayList<String> users = roomManager.findUsersInRoom(roomUID);
+                    Room room = roomManager.findRoomByUID(roomUID);
+                    if (users != null) {
+                        AppendText("방 [" + room.roomName + "] 정보 유저들에게 전송");
+                        ChatMsg obcm = new ChatMsg(UserName, "GAMESTART", roomUID);
+                        //obcm.setList(new ArrayList<>());
+                        //WriteRoomUserList(obcm, room); // 방 안의 모든 유저들에게 전송
+                        //리스트 안보내고 방 유저들에게 메세지 전송하는 메소드 필요!
+                    }
                 }
                 // 카드 뽑기
                 if (cm.code.matches("700")) {
@@ -531,7 +541,7 @@ public class Server extends JFrame {
         }
 
         // UID로 방 이용자 모두 찾기
-        public String findUsersInRoom(String UID) {
+        public ArrayList<String> findUsersInRoom(String UID) {
             for (Room room : roomVec) {
                 if (UID.equals(room.getRoomUID())) { // getRoomUID()
                     return room.getRoomUserList();
@@ -591,10 +601,10 @@ public class Server extends JFrame {
             currentCount++;
         }
 
-        public String getRoomUserList() {
-            String users = "";
+        public ArrayList<String> getRoomUserList() {
+            ArrayList<String> users = new ArrayList<>();
             for (String userName : roomUser) {
-                users += userName + "//";
+                users.add(userName);
             }
             System.out.println("getRoomUserList=" + users);
             return users;
