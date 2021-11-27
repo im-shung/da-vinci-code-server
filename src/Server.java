@@ -81,6 +81,7 @@ public class Server extends JFrame {
 
         textArea = new JTextArea();
         textArea.setEditable(false);
+        textArea.setFont(new Font("D2Coding",Font.BOLD,16));
         scrollPane.setViewportView(textArea);
 
         JLabel lblNewLabel = new JLabel("Port Number");
