@@ -11,6 +11,7 @@ public class ChatMsg implements Serializable {
     public String UserName;
     public String data;
     public ArrayList<String> list = new ArrayList<>();
+    public ArrayList<Server.Card> cardList = new ArrayList<Server.Card>();
 
     public ChatMsg(String UserName, String code, String msg) {
         this.code = code;
@@ -19,6 +20,10 @@ public class ChatMsg implements Serializable {
     }
     // 목록
     public void setList (ArrayList<String> list) {
+        this.list = list;
+    }
+    // 카드 목록
+    public void setCardList (ArrayList<String> list) {
         this.list = list;
     }
 

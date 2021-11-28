@@ -226,7 +226,15 @@ public class Server extends JFrame {
                     user.WriteOne(str);
             }
         }
-
+        // 방 안의 User들에게 List를 방송.
+        public void WriteRoomUsers(ChatMsg obj, Room room) {
+            for (int i = 0; i < room.roomUser.size(); i++) {
+                String userName = room.roomUser.elementAt(i);
+                UserService userService = (UserService) user_vc.elementAt(i);
+                if (userService.UserName == userName)
+                    userService.WriteChatMsg(obj);
+            }
+        }
         // 모든 User들에게 List를 방송.
         public void WriteAllList(ChatMsg obj) {
             for (int i = 0; i < user_vc.size(); i++) {
@@ -434,19 +442,6 @@ public class Server extends JFrame {
                         WriteChatMsg(obcm);
                     }
                 }
-                // 방 안의 유저 목록
-                if (cm.code.matches("ROOMUSERLIST")) {
-                    String roomUID = cm.data; // 단어들을 분리한다.
-                    ArrayList<String> users = roomManager.findUsersInRoom(roomUID);
-                    Room room = roomManager.findRoomByUID(roomUID);
-                    if (users != null) {
-                        AppendText("방 [" + room.roomName + "] 정보 유저들에게 전송");
-                        ChatMsg obcm = new ChatMsg(UserName, "ROOMUSERLIST", "send room user list!");
-                        obcm.setList(users);
-                        WriteRoomUserList(obcm, room); // 방 안의 모든 유저들에게 전송
-                        WriteRoomUserList(obcm, room); // 방 안의 모든 유저들에게 전송
-                    }
-                }
                 // 게임 시작, 코인 배팅
                 if (cm.code.matches("GAMESTART")) {
                     String roomUID = cm.data; // 단어들을 분리한다.
@@ -455,14 +450,20 @@ public class Server extends JFrame {
                     if (users != null) {
                         AppendText("방 [" + room.roomName + "] 정보 유저들에게 전송");
                         ChatMsg obcm = new ChatMsg(UserName, "GAMESTART", roomUID);
-                        //obcm.setList(new ArrayList<>());
-                        //WriteRoomUserList(obcm, room); // 방 안의 모든 유저들에게 전송
-                        //리스트 안보내고 방 유저들에게 메세지 전송하는 메소드 필요!
+                        WriteRoomUsers(obcm, room); // 방 안의 모든 유저들에게 전송
                     }
                 }
-                // 카드 뽑기
-                if (cm.code.matches("700")) {
-
+                // 카드 배정
+                if (cm.code.matches("READY")) {
+                    String roomUID = cm.data;
+                    ArrayList<String> users = roomManager.findUsersInRoom(roomUID);
+                    Room room = roomManager.findRoomByUID(roomUID);
+                    if (users != null) {
+                        AppendText("방 [" + room.roomName + "] 카드 배정 시작");
+                        ChatMsg obcm = new ChatMsg(UserName, "READY", roomUID);
+                        //obcm.setCardList();
+                        WriteRoomUsers(obcm, room); // 방 안의 모든 유저들에게 전송
+                    }
                 }
                 // 조커 위치 지정8
                 if (cm.code.matches("800")) {
