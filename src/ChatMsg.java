@@ -1,7 +1,5 @@
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Vector;
+import java.util.*;
 
 // ChatMsg.java 채팅 메시지 ObjectStream 용.
 public class ChatMsg implements Serializable {
@@ -11,7 +9,7 @@ public class ChatMsg implements Serializable {
     public String UserName;
     public String data;
     public ArrayList<String> list = new ArrayList<>();
-    public ArrayList<Server.Card> cardList = new ArrayList<Server.Card>();
+    public Map<String,Vector<Server.Card>> cards= new HashMap<>();
 
     public ChatMsg(String UserName, String code, String msg) {
         this.code = code;
@@ -23,8 +21,8 @@ public class ChatMsg implements Serializable {
         this.list = list;
     }
     // 카드 목록
-    public void setCardList (ArrayList<String> list) {
-        this.list = list;
+    public void setCards (Map<String,Vector<Server.Card>> cards) {
+        this.cards = cards;
     }
 
 }
