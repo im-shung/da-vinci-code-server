@@ -472,6 +472,7 @@ public class Server extends JFrame {
                         ChatMsg obcm = new ChatMsg(UserName, "ROOMUSERLIST", "send room user list!");
                         obcm.setList(users);
                         WriteRoomUserList(obcm, room); // 방 안의 모든 유저들에게 전송
+                        WriteRoomUserList(obcm, room); // 방 안의 모든 유저들에게 전송
                     }
                 }
                 // 방 삭제
