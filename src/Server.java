@@ -706,7 +706,7 @@ public class Server extends JFrame {
             for(Observer o : observers){ // 방의 사용자 수만큼 돌기
                 for (int i=0; i<3; i++) {
                     do { // 중복 없이 랜덤 숫자 뽑기
-                        randomNum = random.nextInt(26); // 총 카드 수: 26
+                        randomNum = random.nextInt(RoomCards.size()); // 총 카드 수: 26
                         if (selectedNum.size() == 0) break;
                         for (Integer s: selectedNum) {
                             if (s == randomNum) {
@@ -720,14 +720,13 @@ public class Server extends JFrame {
                     Card card = RoomCards.get(randomNum); // Room이 owner인 카드 벡터에서 랜덤 카드 꺼내기
                     card.setOwner(o.owner);
                     o.cards.add(card);
-                    RoomCards.remove(randomNum); // Room이 owner인 카드 벡터에서 랜덤 카드 제거
+                    RoomCards.remove(randomNum);// Room이 owner인 카드 벡터에서 랜덤 카드 제거
 
                 }
                 System.out.println(o.owner+"의 카드리스트: ");
                 o.print();
                 System.out.println("------------------------------------------");
             }
-
         }
         public Observer getObserverByName(String UserName) {
             for(Observer o: observers) {
