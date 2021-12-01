@@ -12,14 +12,7 @@ import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
@@ -471,6 +464,7 @@ public class Server extends JFrame {
                         AppendText("방 [" + room.roomName + "] 정보 유저들에게 전송");
                         ChatMsg obcm = new ChatMsg(UserName, "ROOMUSERLIST", "send room user list!");
                         obcm.setList(users);
+                        WriteRoomUserList(obcm, room);
                         WriteRoomUserList(obcm, room); // 방 안의 모든 유저들에게 전송
                     }
                 }
@@ -758,7 +752,9 @@ public class Server extends JFrame {
 
     }
     // 카드 클래스
-    class Card {
+    class Card implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String owner;
         private int cardNum; // 0~11
         private String cardColor;
