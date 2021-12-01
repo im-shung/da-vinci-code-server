@@ -147,7 +147,9 @@ public class Server extends JFrame {
 
     // User 당 생성되는 Thread
     // Read One 에서 대기 -> Write All
-    class UserService extends Thread {
+    class UserService extends Thread implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private InputStream is;
         private OutputStream os;
         private DataInputStream dis;
