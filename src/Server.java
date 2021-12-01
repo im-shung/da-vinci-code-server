@@ -20,7 +20,7 @@ import java.awt.event.ActionEvent;
 import java.util.List;
 import javax.swing.SwingConstants;
 
-public class Server extends JFrame {
+public class Server extends JFrame implements Serializable {
 
     /**
      *
