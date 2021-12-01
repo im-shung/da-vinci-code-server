@@ -246,7 +246,10 @@ public class Server extends JFrame implements Serializable {
                 String userName = room.roomUser.elementAt(i);
                 UserService userService = (UserService) user_vc.elementAt(i);
                 if (userService.UserName == userName)
+                {
+                    obj.UserName = userService.UserName;
                     userService.WriteChatList(obj);
+                }
             }
         }
         // 방 안의 User들에게  방송.
@@ -264,7 +267,10 @@ public class Server extends JFrame implements Serializable {
                 String userName = room.roomUser.elementAt(i);
                 UserService userService = (UserService) user_vc.elementAt(i);
                 if (userService.UserName == userName)
-                    userService.WriteChatCard(obj);
+                {
+                    obj.UserName = userService.UserName;
+                    userService.WriteChatList(obj);
+                }
             }
         }
         // UserService Thread가 담당하는 Client 에게 1:1 전송
@@ -338,30 +344,6 @@ public class Server extends JFrame implements Serializable {
                 oos.writeObject(obj.UserName);
                 oos.writeObject(obj.data);
                 oos.writeObject(obj.list);
-                oos.reset();
-            } catch (IOException e) {
-                AppendText("oos.writeObject(ob) error");
-                try {
-                    ois.close();
-                    oos.close();
-                    client_socket.close();
-                    client_socket = null;
-                    ois = null;
-                    oos = null;
-                } catch (IOException e1) {
-                    // TODO Auto-generated catch block
-                    e1.printStackTrace();
-                }
-                Logout();
-            }
-        }
-        // 클라이언트에게 목록 형식으로 보낼 때 사용
-        public void WriteChatCard(ChatMsg obj) {
-            try {
-                oos.writeObject(obj.code);
-                oos.writeObject(obj.UserName);
-                oos.writeObject(obj.data);
-                oos.writeObject(obj.cards);
                 oos.reset();
             } catch (IOException e) {
                 AppendText("oos.writeObject(ob) error");
@@ -497,14 +479,11 @@ public class Server extends JFrame implements Serializable {
                     String roomUID = cm.data;
                     ArrayList<String> users = roomManager.findUsersInRoom(roomUID); // 방 안의 유저 목록
                     Room room = roomManager.findRoomByUID(roomUID);
-                    Map<String,Vector<Server.Card>> cards= new HashMap<>();
+                    CardManager cardManager = room.getCardManager();
                     AppendText("방 [" + room.roomName + "] 카드 배정 시작");
-                    for (String name: users) {
-                        cards.put(name,room.cardManager.getObserverByName(name).cards);
-                    }
-                    ChatMsg obcm = new ChatMsg(UserName, "READY", "cards");
-                    obcm.setCards(cards);
-                    WriteRoomUCard(obcm, room); // 방 안의 모든 유저들에게 전송
+                    ChatMsg obcm = new ChatMsg(UserName, "READY", cardManager.getEachCardSize());
+                    obcm.setList(cardManager.getObserverByName(UserName).getCardsList());
+                    WriteRoomUserList(obcm, room); // 방 안의 모든 유저들에게 전송
                 }
                 // 카드 뽑기
                 if (cm.code.matches("700")) {
@@ -647,6 +626,9 @@ public class Server extends JFrame implements Serializable {
             }
             cardManager.ready(); // 카드 나눠주기
         }
+        public CardManager getCardManager() {
+            return cardManager;
+        }
 
     }
     class CardManager extends Subject{
@@ -725,6 +707,7 @@ public class Server extends JFrame implements Serializable {
                 System.out.println("------------------------------------------");
             }
         }
+
         public Observer getObserverByName(String UserName) {
             for(Observer o: observers) {
                 if(o.owner.equals(UserName)){
@@ -733,10 +716,18 @@ public class Server extends JFrame implements Serializable {
             }
             return null;
         }
+        public String getEachCardSize() { // [현재 인원//USER1:개수//USER2:개수]
+            String line = observers.size()+"//";
+
+            for (Observer o : observers) {
+                line += o.owner + ":" + o.cards.size() + "//";
+            }
+            return line;
+        }
     }
+
     class Observer {
         private String owner;
-        private int size;
         private Vector<Card> cards ;
 
         public Observer(String owner){
@@ -751,6 +742,13 @@ public class Server extends JFrame implements Serializable {
             for(Card c: cards){
                 System.out.println(c.cardColor+c.cardNum);
             }
+        }
+        public ArrayList<String> getCardsList() {
+            ArrayList<String> list = new ArrayList<>();
+            for(Card c: cards){
+                list.add(c.cardColor+c.cardNum);
+            }
+            return list;
         }
 
     }

@@ -9,7 +9,6 @@ public class ChatMsg implements Serializable {
     public String UserName;
     public String data;
     public ArrayList<String> list = new ArrayList<>();
-    public Map<String,Vector<Server.Card>> cards= new HashMap<>();
 
     public ChatMsg(String UserName, String code, String msg) {
         this.code = code;
@@ -19,10 +18,6 @@ public class ChatMsg implements Serializable {
     // 목록
     public void setList (ArrayList<String> list) {
         this.list = list;
-    }
-    // 카드 목록
-    public void setCards (Map<String,Vector<Server.Card>> cards) {
-        this.cards = cards;
     }
 
 }
