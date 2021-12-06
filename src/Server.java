@@ -261,16 +261,11 @@ public class Server extends JFrame implements Serializable {
                     userService.WriteChatMsg(obj);
             }
         }
-        // 방 안의 User들에게  Card 방송.
-        public void WriteRoomUCard(ChatMsg obj, Room room) {
-            for (int i = 0; i < room.roomUser.size(); i++) {
-                String userName = room.roomUser.elementAt(i);
-                UserService userService = (UserService) user_vc.elementAt(i);
-                if (userService.UserName == userName)
-                {
-                    obj.UserName = userService.UserName;
-                    userService.WriteChatList(obj);
-                }
+        // 방 안의 User들에게 Card 방송.
+        public void WriteRoomCard(ChatMsg obj) {
+            for (int i = 0; i < user_vc.size(); i++) {
+                UserService user = (UserService) user_vc.elementAt(i);
+                user.WriteChatList(obj);
             }
         }
         // UserService Thread가 담당하는 Client 에게 1:1 전송
@@ -481,9 +476,13 @@ public class Server extends JFrame implements Serializable {
                     Room room = roomManager.findRoomByUID(roomUID);
                     CardManager cardManager = room.getCardManager();
                     AppendText("방 [" + room.roomName + "] 카드 배정 시작");
-                    ChatMsg obcm = new ChatMsg(UserName, "READY", cardManager.getEachCardSize());
-                    obcm.setList(cardManager.getObserverByName(UserName).getCardsList());
-                    WriteRoomUserList(obcm, room); // 방 안의 모든 유저들에게 전송
+                    for (String userName: room.usersList) {
+                        ChatMsg obcm = new ChatMsg(userName, "READY", cardManager.getEachCardSize());
+                        obcm.setList(cardManager.getObserverByName(userName).getCardsList()); // 방 유저 카드리스트 등록
+                        WriteRoomCard(obcm);
+                    }
+
+
                 }
                 // 카드 뽑기
                 if (cm.code.matches("700")) {
