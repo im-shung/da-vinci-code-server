@@ -779,12 +779,14 @@ public class Server extends JFrame implements Serializable {
         private int cardNum; // 0~11
         private String cardColor;
         private Boolean isJocker;
+        private Boolean isOpened;
 
         public Card(String color, int num) {
             this.owner = "RoomId";
             this.cardColor = color;
             this.cardNum = num;
             this.isJocker = false;
+            this.isOpened = false;
         }
 
         public Card(String color, Boolean isJocker) {
