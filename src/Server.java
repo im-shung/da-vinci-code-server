@@ -183,7 +183,6 @@ public class Server extends JFrame implements Serializable {
             String msg = "[" + UserName + "]님이 입장 하였습니다.\n";
             WriteOthers(msg); // 아직 user_vc에 새로 입장한 user는 포함되지 않았다.
         }
-
         public void Logout() {
             String msg = "[" + UserName + "]님이 퇴장 하였습니다.\n";
             allUser.removeElement(this); // Logout한 현재 객체를 벡터에서 지운다
@@ -286,6 +285,7 @@ public class Server extends JFrame implements Serializable {
             ChatMsg obcm = new ChatMsg("귓속말", "BROADCAST", msg);
             WriteChatMsg(obcm);
         }
+        
         public ChatMsg ReadChatMsg() {
             Object obj = null;
             String msg = null;
@@ -317,7 +317,6 @@ public class Server extends JFrame implements Serializable {
             }
             return cm;
         }
-
         public void WriteChatMsg(ChatMsg obj) {
             try {
                 oos.writeObject(obj.code);
@@ -490,7 +489,7 @@ public class Server extends JFrame implements Serializable {
                         WriteRoomCard(obcm);
                     }
                     for (String userName: room.usersList) {
-                        String line = room.firstTurnMessage(userName);
+                        String line = room.firstTurnMessage(userName); // 자신의 턴인지 아닌지에 대한 메세지
                         ChatMsg obcm = new ChatMsg(userName, "TURN", line);
                         WriteTurn(obcm,userName);
                     }
@@ -500,27 +499,32 @@ public class Server extends JFrame implements Serializable {
                     String roomUID = cm.data;
                     Room room = roomManager.findRoomByUID(roomUID);
                     String nextUser = room.nextTurn(UserName); // 현재 차례의 유저 이름을 보내면 다음 차례의 유저 이름을 리턴 
-                    ChatMsg obcm = new ChatMsg(nextUser, "TURN", "당신의 턴 입니다."); // 다음 차례 유저에게 발송
+                    ChatMsg obcm = new ChatMsg(nextUser, "TURN", "당신의 턴 입니다."); // 다음 차례 유저에게 전송
                     WriteTurn(obcm,nextUser);
                 }
-                // 조커 위치 지정8
-                if (cm.code.matches("800")) {
-
+                // 카드 뽑기
+                if (cm.code.matches("TAKECARD")) {
+                    String roomUID = cm.data;
+                    Room room = roomManager.findRoomByUID(roomUID);
+                    CardManager cardManager = room.getCardManager();
+                    String cardInfo = cardManager.takeCard(UserName);
+                    ChatMsg obcm = new ChatMsg(UserName, "TAKECARD", cardInfo); // 랜덤 카드 정보 전송
+                    WriteChatMsg(obcm);
                 }
                 // 카드 맞추기
-                if (cm.code.matches("900")) {
+                if (cm.code.matches("MATCHCARD")) {
 
                 }
                 // 패스
-                if (cm.code.matches("1000")) {
+                if (cm.code.matches("PASS")) {
 
                 }
                 // 카드 공개
-                if (cm.code.matches("1100")) {
+                if (cm.code.matches("CARDOPEN")) {
 
                 }
                 // 랭킹보기 요청
-                if (cm.code.matches("1200")) {
+                if (cm.code.matches("RANK")) {
 
                 }
             } // while
@@ -653,6 +657,7 @@ public class Server extends JFrame implements Serializable {
             }
             return null;
         }
+        // 첫 번째 차례 리턴
         public String firstTurnMessage(String userName) {
             String line = "";
             if(usersList.get(firstUserIndex).equals(userName))
@@ -663,15 +668,13 @@ public class Server extends JFrame implements Serializable {
         }
     }
     class CardManager extends Subject{
-        private Vector<Card> cards; // 기본 카드 벡터
         private int count;
 
         public CardManager(int count){
             this.count = count;
             init();
         }
-
-        // MATCH CARD
+        // 카드 맞추기
         public void matchCard(String UserName, int cardSeq, int answer) {
             Observer observer = getObserverByName(UserName);
             Card card = observer.cards.get(cardSeq);
@@ -682,8 +685,17 @@ public class Server extends JFrame implements Serializable {
     }
     abstract class Subject {
         private List<Observer> observers = new ArrayList<Observer>();
-        private Vector<Card> RoomCards;
+        private Vector<Card> RoomCards; // 남아있는 카드 벡터
+        private  ArrayList<Integer> selectedNum = new ArrayList<>();
 
+        public Observer getObserverByName(String UserName) {
+            for(Observer o: observers) {
+                if(o.owner.equals(UserName)){
+                    return o;
+                }
+            }
+            return null;
+        }
         public void attach(Observer observer) {
             observers.add(observer);
         }
@@ -695,6 +707,7 @@ public class Server extends JFrame implements Serializable {
                 o.update();
             }
         }
+        // 카드 초기화
         public void init() {
             // 카드 초기화 (WHITE 0-11, BLACK 0-11, WHITE 조커, BLACK 조커)
             RoomCards = new Vector<Card>();
@@ -710,8 +723,6 @@ public class Server extends JFrame implements Serializable {
             int randomNum;
             int flag = 0;
             Random random = new Random();
-            ArrayList<Integer> selectedNum = new ArrayList<>();
-
             for(Observer o : observers){ // 방의 사용자 수만큼 돌기
                 for (int i=0; i<3; i++) {
                     do { // 중복 없이 랜덤 숫자 뽑기
@@ -724,11 +735,11 @@ public class Server extends JFrame implements Serializable {
                             }
                         }
                     } while (flag == 1);
-                    selectedNum.add(randomNum); // 선택된 숫자 저장
+                    selectedNum.add(randomNum); // 선택된 숫자를 selectedNum리스트에 저장
 
-                    Card card = RoomCards.get(randomNum); // Room이 owner인 카드 벡터에서 랜덤 카드 꺼내기
-                    card.setOwner(o.owner);
-                    o.cards.add(card);
+                    Card c = RoomCards.get(randomNum); // Room이 owner인 카드 벡터에서 랜덤 카드 꺼내기
+                    c.setOwner(o.owner);
+                    o.cards.add(c);
                     RoomCards.remove(randomNum);// Room이 owner인 카드 벡터에서 랜덤 카드 제거
 
                 }
@@ -737,13 +748,30 @@ public class Server extends JFrame implements Serializable {
                 System.out.println("------------------------------------------");
             }
         }
-        public Observer getObserverByName(String UserName) {
-            for(Observer o: observers) {
-                if(o.owner.equals(UserName)){
-                    return o;
+        // 랜덤 카드 뽑기
+        public String takeCard(String owner) {
+            Observer o = getObserverByName(owner);
+            int randomNum;
+            int flag =0;
+            Random random = new Random();
+            do { // 중복 없이 랜덤 숫자 뽑기
+                randomNum = random.nextInt(RoomCards.size()); // 남아있는 카드 중 하나 뽑기
+                if (selectedNum.size() == 0) break;
+                for (Integer s: selectedNum) {
+                    if (s == randomNum) {
+                        flag = 1;
+                        break;
+                    }
                 }
-            }
-            return null;
+            } while (flag == 1);
+            selectedNum.add(randomNum); // 선택된 숫자를 selectedNum리스트에 저장
+
+            Card c = RoomCards.get(randomNum); // Room이 owner인 카드 벡터에서 랜덤 카드 꺼내기
+            c.setOwner(owner);
+            o.cards.add(c);
+            RoomCards.remove(randomNum);// Room이 owner인 카드 벡터에서 랜덤 카드 제거
+
+            return c.cardColor+c.cardNum; // 카드 색깔+카드 번호 리턴
         }
     }
 
