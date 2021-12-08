@@ -240,39 +240,29 @@ public class Server extends JFrame implements Serializable {
             }
         }
         // 방 안의 User들에게 List를 방송.
-        public void WriteRoomUserList(ChatMsg obj, Room room) {
-            for (int i = 0; i < room.roomUser.size(); i++) {
-                String userName = room.roomUser.elementAt(i);
+        public void WriteRoomList(ChatMsg obj, Room room) {
+            for (int i = 0; i < user_vc.size(); i++) { // 전체 유저 이름 중
                 UserService userService = (UserService) user_vc.elementAt(i);
-                if (userService.UserName == userName)
-                {
-                    obj.UserName = userService.UserName;
-                    userService.WriteChatList(obj);
+
+                for (int j = 0; j < room.roomUser.size(); j++) { // 방 유저 이름이 같으면
+                    String roomUserName = room.roomUser.elementAt(i);
+                    if (userService.UserName == roomUserName)
+                        userService.WriteChatList(obj);
                 }
             }
         }
-        // 방 안의 User들에게  방송.
+        // 방 안의 User들에게 방송.
         public void WriteRoomUsers(ChatMsg obj, Room room) {
-            for (int i = 0; i < room.roomUser.size(); i++) {
-                String userName = room.roomUser.elementAt(i);
+            for (int i = 0; i < user_vc.size(); i++) { // 전체 유저 이름 중
                 UserService userService = (UserService) user_vc.elementAt(i);
-                if (userService.UserName == userName)
-                    userService.WriteChatMsg(obj);
-            }
-        }
-        // 방 안의 User들에게 Card 방송.
-        public void WriteRoomCard(ChatMsg obj) {
-            for (int i = 0; i < user_vc.size(); i++) {
-                UserService user = (UserService) user_vc.elementAt(i);
-                user.WriteChatList(obj);
-            }
-        }
-        // TURN 보내기
-        public void WriteTurn(ChatMsg obj, String userName) {
-            for (int i = 0; i < user_vc.size(); i++) {
-                UserService user = (UserService) user_vc.elementAt(i);
-                if (Objects.equals(user.UserName, userName))
-                    user.WriteChatMsg(obj);
+
+                for (int j = 0; j < room.roomUser.size(); j++) { // 방 유저 이름이 같으면
+                    String roomUserName = room.roomUser.elementAt(i);
+                    if (userService.UserName == roomUserName){
+                        obj.UserName = roomUserName;
+                        userService.WriteChatMsg(obj);
+                    }
+                }
             }
         }
         // UserService Thread가 담당하는 Client 에게 1:1 전송
@@ -450,9 +440,9 @@ public class Server extends JFrame implements Serializable {
                         AppendText("방 [" + room.roomName + "] 정보 유저들에게 전송");
                         ChatMsg obcm = new ChatMsg(UserName, "ROOMUSERLIST", "send room user list!");
                         obcm.setList(users);
-                        WriteRoomUserList(obcm, room);
-                        WriteRoomUserList(obcm, room); // 방 안의 모든 유저들에게 전송
-                        WriteRoomUserList(obcm, room); // 방 안의 모든 유저들에게 전송
+                        WriteRoomList(obcm, room);
+                        WriteRoomList(obcm, room); // 방 안의 모든 유저들에게 전송
+                        WriteRoomList(obcm, room); // 방 안의 모든 유저들에게 전송
                     }
                 }
                 // 방 삭제
@@ -486,21 +476,18 @@ public class Server extends JFrame implements Serializable {
                     for (String userName: room.usersList) {
                         ChatMsg obcm = new ChatMsg(userName, "READY", "카드 리스트 전송");
                         obcm.setList(cardManager.getObserverByName(userName).getCardsList()); // 방 유저 카드리스트 등록
-                        WriteRoomCard(obcm);
+                        WriteRoomList(obcm,room);
                     }
-                    for (String userName: room.usersList) {
-                        String line = room.firstTurnMessage(userName); // 자신의 턴인지 아닌지에 대한 메세지
-                        ChatMsg obcm = new ChatMsg(userName, "TURN", line);
-                        WriteTurn(obcm,userName);
-                    }
+                    ChatMsg obcm = new ChatMsg(UserName, "TURN", room.firstTurnUserName());
+                    WriteRoomUsers(obcm,room); // 첫번째 턴 유저 이름 방송
                 }
                 // 턴 
                 if (cm.code.matches("TURN")) {
                     String roomUID = cm.data;
                     Room room = roomManager.findRoomByUID(roomUID);
                     String nextUser = room.nextTurn(UserName); // 현재 차례의 유저 이름을 보내면 다음 차례의 유저 이름을 리턴 
-                    ChatMsg obcm = new ChatMsg(nextUser, "TURN", "당신의 턴 입니다."); // 다음 차례 유저에게 전송
-                    WriteTurn(obcm,nextUser);
+                    ChatMsg obcm = new ChatMsg(UserName, "TURN", nextUser); // 다음 차례 유저 이름 방송
+                    WriteRoomUsers(obcm,room);
                 }
                 // 카드 뽑기
                 if (cm.code.matches("TAKECARD")) {
@@ -509,7 +496,7 @@ public class Server extends JFrame implements Serializable {
                     CardManager cardManager = room.getCardManager();
                     String cardInfo = cardManager.takeCard(UserName);
                     ChatMsg obcm = new ChatMsg(UserName, "TAKECARD", cardInfo); // 랜덤 카드 정보 전송
-                    WriteChatMsg(obcm);
+                    WriteRoomUsers(obcm,room);
                 }
                 // 카드 맞추기
                 if (cm.code.matches("MATCHCARD")) {
@@ -658,13 +645,8 @@ public class Server extends JFrame implements Serializable {
             return null;
         }
         // 첫 번째 차례 리턴
-        public String firstTurnMessage(String userName) {
-            String line = "";
-            if(usersList.get(firstUserIndex).equals(userName))
-                line =  "당신의 턴입니다";
-            else
-                line = "당신의 턴이 아닙니다.";
-            return line;
+        public String firstTurnUserName() {
+            return usersList.get(firstUserIndex);
         }
     }
     class CardManager extends Subject{
