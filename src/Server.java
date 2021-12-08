@@ -244,10 +244,12 @@ public class Server extends JFrame implements Serializable {
             for (int i = 0; i < user_vc.size(); i++) { // 전체 유저 이름 중
                 UserService userService = (UserService) user_vc.elementAt(i);
 
-                for (int j = 0; j < room.roomUser.size(); j++) { // 방 유저 이름이 같으면
-                    String roomUserName = room.roomUser.elementAt(i);
-                    if (userService.UserName == roomUserName)
+                for (int j = 0; j < room.usersList.size(); j++) { // 방 유저 이름이 같으면
+                    String roomUserName = room.usersList.get(i);
+                    if (userService.UserName == roomUserName){
                         userService.WriteChatList(obj);
+                        break;
+                    }
                 }
             }
         }
@@ -256,11 +258,12 @@ public class Server extends JFrame implements Serializable {
             for (int i = 0; i < user_vc.size(); i++) { // 전체 유저 이름 중
                 UserService userService = (UserService) user_vc.elementAt(i);
 
-                for (int j = 0; j < room.roomUser.size(); j++) { // 방 유저 이름이 같으면
-                    String roomUserName = room.roomUser.elementAt(i);
+                for (int j = 0; j < room.usersList.size(); j++) { // 방 유저 이름이 같으면
+                    String roomUserName = room.usersList.get(i);
                     if (userService.UserName == roomUserName){
                         obj.UserName = roomUserName;
                         userService.WriteChatMsg(obj);
+                        break;
                     }
                 }
             }
@@ -473,8 +476,9 @@ public class Server extends JFrame implements Serializable {
                     CardManager cardManager = room.getCardManager();
                     ArrayList<String> users = roomManager.findUsersInRoom(roomUID); // 방 안의 유저 목록
                     AppendText("방 [" + room.roomName + "] 카드 배정 시작");
+
                     for (String userName: room.usersList) {
-                        ChatMsg obcm = new ChatMsg(userName, "READY", "카드 리스트 전송");
+                        ChatMsg obcm = new ChatMsg(userName, "READY", userName+ "의 카드 리스트 전송");
                         obcm.setList(cardManager.getObserverByName(userName).getCardsList()); // 방 유저 카드리스트 등록
                         WriteRoomList(obcm,room);
                     }
@@ -568,7 +572,7 @@ public class Server extends JFrame implements Serializable {
         public ArrayList<String> findUsersInRoom(String UID) {
             for (Room room : roomVec) {
                 if (UID.equals(room.getRoomUID())) { // getRoomUID()
-                    return room.getRoomUserList();
+                    return room.usersList;
                 }
             }
             return null;
@@ -577,9 +581,7 @@ public class Server extends JFrame implements Serializable {
     }
 
     class Room {
-        // Room에 들어와 있는 사용자 벡터
-        private Vector<String> roomUser;
-        private ArrayList<String> usersList;
+        private ArrayList<String> usersList = new ArrayList<>(); // Room에 들어와 있는 사용자 리스트
         private int currentCount = 0;
         private int maxCount;
 
@@ -592,7 +594,6 @@ public class Server extends JFrame implements Serializable {
         private int firstUserIndex;
 
         public Room(String roomName, int maxCount, String passWd) {
-            roomUser = new Vector<String>();
             this.maxCount = maxCount;
             this.roomName = roomName;
             this.passWd = passWd;
@@ -607,17 +608,9 @@ public class Server extends JFrame implements Serializable {
         }
         // Room에 사용자 추가
         public void addUser(UserService user) {
-            roomUser.add(user.UserName);
+            usersList.add(user.UserName);
             user.WriteOne("Welcome to Room");
             currentCount++;
-        }
-        // userList 
-        public ArrayList<String> getRoomUserList() {
-            usersList = new ArrayList<>();
-            for (String userName : roomUser) {
-                usersList.add(userName);
-            }
-            return usersList;
         }
         // 게임 시작, user observer 생성
         public void startGame() {
@@ -626,7 +619,9 @@ public class Server extends JFrame implements Serializable {
             for (String s : usersList) {
                 Observer o = new Observer(s);
                 cardManager.attach(o); // 사용자 수만큼 observer(with user이름) 추가
+                System.out.println("Observer 추가");
             }
+            cardManager.init(); // 카드 초기화
             cardManager.ready(); // 카드 나눠주기
         }
         public CardManager getCardManager() {
@@ -654,7 +649,6 @@ public class Server extends JFrame implements Serializable {
 
         public CardManager(int count){
             this.count = count;
-            init();
         }
         // 카드 맞추기
         public void matchCard(String UserName, int cardSeq, int answer) {
@@ -702,28 +696,34 @@ public class Server extends JFrame implements Serializable {
         }
         // 카드 나눠주기 // [2-3인] : 4개, [4인] : 3개
         public void ready() {
-            int randomNum;
+            int randomIndex;
             int flag = 0;
+            int j;
             Random random = new Random();
-            for(Observer o : observers){ // 방의 사용자 수만큼 돌기
+            for (Observer o : observers){ // 방의 사용자 수만큼 돌기
                 for (int i=0; i<3; i++) {
                     do { // 중복 없이 랜덤 숫자 뽑기
-                        randomNum = random.nextInt(RoomCards.size()); // 총 카드 수: 26
+                        randomIndex = random.nextInt(RoomCards.size()); // 총 카드 수: 26
+
                         if (selectedNum.size() == 0) break;
-                        for (Integer s: selectedNum) {
-                            if (s == randomNum) {
-                                flag = 1;
+
+                        for (j = 0; j < selectedNum.size(); j++ ) { // selectedNum: 뽑힌 카드 번호 리스트
+                            if (selectedNum.get(j) == RoomCards.get(randomIndex).cardNum) {  // 뽑힌 카드 번호와 RoomCard의 랜덤 카드의 번호와 비교
                                 break;
                             }
                         }
-                    } while (flag == 1);
-                    selectedNum.add(randomNum); // 선택된 숫자를 selectedNum리스트에 저장
+                        if (j == selectedNum.size()) flag = 0;
+                        else flag = 1;
 
-                    Card c = RoomCards.get(randomNum); // Room이 owner인 카드 벡터에서 랜덤 카드 꺼내기
+                    } while (flag == 1);
+
+                    int selected = RoomCards.get(randomIndex).cardNum; // 뽑힌 카드 번호
+                    selectedNum.add(selected);
+
+                    Card c = RoomCards.get(randomIndex); // Room이 owner인 카드 벡터에서 랜덤 카드 꺼내기
                     c.setOwner(o.owner);
                     o.cards.add(c);
-                    RoomCards.remove(randomNum);// Room이 owner인 카드 벡터에서 랜덤 카드 제거
-
+                    RoomCards.remove(randomIndex);// Room이 owner인 카드 벡터에서 랜덤 카드 제거
                 }
                 System.out.println(o.owner+"의 카드리스트: ");
                 o.print();
