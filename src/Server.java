@@ -482,8 +482,8 @@ public class Server extends JFrame implements Serializable {
                         obcm.setList(cardManager.getObserverByName(userName).getCardsList()); // 방 유저 카드리스트 등록
                         WriteRoomList(obcm,room);
                     }
-                    ChatMsg obcm = new ChatMsg(UserName, "TURN", room.firstTurnUserName());
-                    WriteRoomUsers(obcm,room); // 첫번째 턴 유저 이름 방송
+//                    ChatMsg obcm = new ChatMsg(UserName, "TURN", room.firstTurnUserName());
+//                    WriteRoomUsers(obcm,room); // 첫번째 턴 유저 이름 방송
                 }
                 // 턴 
                 if (cm.code.matches("TURN")) {
@@ -591,7 +591,7 @@ public class Server extends JFrame implements Serializable {
 
         private CardManager cardManager;
 
-        private int firstUserIndex;
+        private int firstUserIndex = -1;
 
         public Room(String roomName, int maxCount, String passWd) {
             this.maxCount = maxCount;
@@ -614,7 +614,6 @@ public class Server extends JFrame implements Serializable {
         }
         // 게임 시작, user observer 생성
         public void startGame() {
-            firstUserIndex = new Random().nextInt(usersList.size());
             this.cardManager = new CardManager(currentCount);
             for (String s : usersList) {
                 Observer o = new Observer(s);
@@ -629,6 +628,11 @@ public class Server extends JFrame implements Serializable {
         }
         // 다음 차례 유저 리턴
         public String nextTurn(String currnetUser) {
+            if(firstUserIndex == -1){
+                firstUserIndex = new Random().nextInt(usersList.size());
+                System.out.println("firstIndex: "+firstUserIndex+"("+usersList.get(firstUserIndex)+")");
+                return usersList.get(firstUserIndex);
+            }
             for (int i =0; i< usersList.size(); i++) {
                 if (usersList.get(i).equals(currnetUser)){
                     if (i == (usersList.size()-1) )
@@ -637,11 +641,7 @@ public class Server extends JFrame implements Serializable {
                         return usersList.get(i+1);
                 }
             }
-            return null;
-        }
-        // 첫 번째 차례 리턴
-        public String firstTurnUserName() {
-            return usersList.get(firstUserIndex);
+            return currnetUser;
         }
     }
     class CardManager extends Subject{
