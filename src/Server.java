@@ -505,7 +505,8 @@ public class Server extends JFrame implements Serializable {
                     Room room = roomManager.findRoomByUID(roomUID);
                     String fitstUser = room.startTurn();
                     ChatMsg obcm = new ChatMsg(UserName, "TURN", fitstUser); // 다음 차례 유저 이름 방송
-                    WriteRoomUsers(obcm,room);
+                    WriteChatMsg(obcm);
+
                 }
                 // 턴 
                 if (cm.code.matches("TURN")) {
