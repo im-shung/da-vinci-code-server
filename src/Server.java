@@ -525,7 +525,24 @@ public class Server extends JFrame implements Serializable {
                 }
                 // 카드 맞추기
                 if (cm.code.matches("MATCHCARD")) {
-                    //matchCard(userName,cardinfo)
+                    String[] args = cm.data.split("//");
+                    String cardOwner = args[0];
+                    String cardInfo = args[1];
+                    String roomUID = args[2];
+                    Room room = roomManager.findRoomByUID(roomUID);
+                    CardManager cardManager = room.getCardManager();
+                    String result = cardManager.matchCard(cardOwner,cardInfo);
+                    if (result != null) { // 카드 맞추기 성공 시
+                        ChatMsg obcm = new ChatMsg(UserName, "SUCCESS", result); // [cardOwner//cardInfo]
+                        WriteRoomCardInfo(obcm,room);
+                    }
+                    else { // 카드 맞추기 실패 시
+                        ChatMsg obcm = new ChatMsg(UserName, "FAIL","match card fail!" );
+                        WriteChatMsg(obcm);
+                        String cardOpen = cardManager.getObserverByName(UserName).newCardOpen();
+                        ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN",cardOpen);
+                        WriteRoomUsers(obcm2,room);
+                    }
                 }
                 // 패스
                 if (cm.code.matches("PASS")) {
@@ -779,6 +796,7 @@ public class Server extends JFrame implements Serializable {
             Card c = RoomCards.get(randomNum); // Room이 owner인 카드 벡터에서 랜덤 카드 꺼내기
             c.setOwner(owner);
             o.cards.add(c);
+            o.newCard = c;
             RoomCards.remove(randomNum);// Room이 owner인 카드 벡터에서 랜덤 카드 제거
 
             return c.cardColor+c.cardNum; // 카드 색깔+카드 번호 리턴
@@ -789,7 +807,7 @@ public class Server extends JFrame implements Serializable {
             String color = answer.substring(0,1);
             int number = Integer.parseInt(answer.substring(1));
             
-            return observer.getCard(color,number); // 정답이면 카드 정보를, 아니면 null를 리턴
+            return observer.matchCardInfo(color,number); // 정답이면 카드 정보를, 아니면 null를 리턴
         }
         // 점수 리턴
         public int getScore(String owner) {
@@ -801,6 +819,7 @@ public class Server extends JFrame implements Serializable {
         private String owner;
         private Vector<Card> cards ;
         private int score;
+        private Card newCard;
 
         public Observer(String owner){
             this.owner = owner;
@@ -814,10 +833,10 @@ public class Server extends JFrame implements Serializable {
                 System.out.println(c.cardColor+c.cardNum);
             }
         }
-        public String getCard(String color, int num) {
+        public String matchCardInfo(String color, int num) {
             for(Card card : cards) {
                 if(card.cardColor == color && card.cardNum == num) {
-                    return card.cardColor+card.cardNum;
+                    return owner+"//"+card.cardColor+card.cardNum;
                 }
             }
             return null;
@@ -832,6 +851,10 @@ public class Server extends JFrame implements Serializable {
         // 점수
         public void scoreUp(int score) {
             this.score += score;
+        }
+        // new Card 오픈
+        public String newCardOpen() {
+            return owner+"//"+newCard.cardColor+newCard.cardNum;
         }
     }
     class Card implements Serializable {
