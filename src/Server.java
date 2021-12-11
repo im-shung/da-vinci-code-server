@@ -268,6 +268,20 @@ public class Server extends JFrame implements Serializable {
                 }
             }
         }
+        // 방 안의 User들에게 방송.
+        public void WriteRoomCardInfo(ChatMsg obj, Room room) {
+            for (int i = 0; i < user_vc.size(); i++) { // 전체 유저 이름 중
+                UserService userService = (UserService) user_vc.elementAt(i);
+
+                for (int j = 0; j < room.usersList.size(); j++) { // 방 유저 이름이 같으면
+                    String roomUserName = room.usersList.get(i);
+                    if (userService.UserName == roomUserName){
+                        userService.WriteChatMsg(obj);
+                        break;
+                    }
+                }
+            }
+        }
         // UserService Thread가 담당하는 Client 에게 1:1 전송
         public void WriteOne(String msg) {
             ChatMsg obcm = new ChatMsg("SERVER", "BROADCAST", msg);
@@ -482,8 +496,6 @@ public class Server extends JFrame implements Serializable {
                         obcm.setList(cardManager.getObserverByName(userName).getCardsList()); // 방 유저 카드리스트 등록
                         WriteRoomList(obcm,room);
                     }
-//                    ChatMsg obcm = new ChatMsg(UserName, "TURN", room.firstTurnUserName());
-//                    WriteRoomUsers(obcm,room); // 첫번째 턴 유저 이름 방송
                 }
                 // 턴 
                 if (cm.code.matches("TURN")) {
@@ -500,7 +512,7 @@ public class Server extends JFrame implements Serializable {
                     CardManager cardManager = room.getCardManager();
                     String cardInfo = cardManager.takeCard(UserName);
                     ChatMsg obcm = new ChatMsg(UserName, "TAKECARD", cardInfo); // 랜덤 카드 정보 전송
-                    WriteRoomUsers(obcm,room);
+                    WriteRoomCardInfo(obcm,room);
                 }
                 // 카드 맞추기
                 if (cm.code.matches("MATCHCARD")) {
@@ -579,7 +591,7 @@ public class Server extends JFrame implements Serializable {
         }
 
     }
-
+    // ROOM
     class Room {
         private ArrayList<String> usersList = new ArrayList<>(); // Room에 들어와 있는 사용자 리스트
         private int currentCount = 0;
@@ -644,6 +656,7 @@ public class Server extends JFrame implements Serializable {
             return currnetUser;
         }
     }
+    // Card 관리 클래스
     class CardManager extends Subject{
         private int count;
 
@@ -659,6 +672,7 @@ public class Server extends JFrame implements Serializable {
             }
         }
     }
+    // 방 유저 observer 관리
     abstract class Subject {
         private List<Observer> observers = new ArrayList<Observer>();
         private Vector<Card> RoomCards; // 남아있는 카드 벡터
@@ -756,7 +770,6 @@ public class Server extends JFrame implements Serializable {
             return c.cardColor+c.cardNum; // 카드 색깔+카드 번호 리턴
         }
     }
-
     class Observer {
         private String owner;
         private Vector<Card> cards ;
@@ -781,7 +794,6 @@ public class Server extends JFrame implements Serializable {
             return list;
         }
     }
-    // 카드 클래스
     class Card implements Serializable {
         private static final long serialVersionUID = 1L;
 
