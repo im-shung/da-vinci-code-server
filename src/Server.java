@@ -245,7 +245,7 @@ public class Server extends JFrame implements Serializable {
                 UserService userService = (UserService) user_vc.elementAt(i);
 
                 for (int j = 0; j < room.usersList.size(); j++) { // 방 유저 이름이 같으면
-                    String roomUserName = room.usersList.get(i);
+                    String roomUserName = room.usersList.get(j);
                     if (userService.UserName == roomUserName){
                         userService.WriteChatList(obj);
                         break;
@@ -259,10 +259,12 @@ public class Server extends JFrame implements Serializable {
                 UserService userService = (UserService) user_vc.elementAt(i);
 
                 for (int j = 0; j < room.usersList.size(); j++) { // 방 유저 이름이 같으면
-                    String roomUserName = room.usersList.get(i);
+                    String roomUserName = room.usersList.get(j);
+
                     if (userService.UserName == roomUserName){
                         obj.UserName = roomUserName;
                         userService.WriteChatMsg(obj);
+                        System.out.println(roomUserName+"이 메세지 보냄");
                         break;
                     }
                 }
@@ -274,7 +276,7 @@ public class Server extends JFrame implements Serializable {
                 UserService userService = (UserService) user_vc.elementAt(i);
 
                 for (int j = 0; j < room.usersList.size(); j++) { // 방 유저 이름이 같으면
-                    String roomUserName = room.usersList.get(i);
+                    String roomUserName = room.usersList.get(j);
                     if (userService.UserName == roomUserName){
                         userService.WriteChatMsg(obj);
                         break;
