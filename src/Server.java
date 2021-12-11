@@ -535,9 +535,9 @@ public class Server extends JFrame implements Serializable {
                     String roomUID = args[3];
                     Room room = roomManager.findRoomByUID(roomUID);
                     CardManager cardManager = room.getCardManager();
-                    String ownerCardOpen = cardManager.matchCard(cardOwner, cardInfo,Integer.parseInt(cardIndex)); // [cardOwner//cardInfo]
+                    String ownerCardOpen = cardManager.matchCard(cardOwner, cardInfo,Integer.parseInt(cardIndex));
                     if (ownerCardOpen != null) { // 카드 맞추기 성공 시
-                        ChatMsg obcm = new ChatMsg(UserName, "SUCCESS", ownerCardOpen);
+                        ChatMsg obcm = new ChatMsg(UserName, "SUCCESS", ownerCardOpen); // [cardOwner//index]
                         WriteRoomCardInfo(obcm, room);
                         // 카드 주인의 카드 정보 방송
                         ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN", cardIndex);
@@ -875,7 +875,7 @@ public class Server extends JFrame implements Serializable {
         public String matchCardInfo(String color, int num,int index) {
             Card card = cards.get(index);
             if (Objects.equals(card.cardColor, color) && card.cardNum == num) {
-                return owner + "//" + card.cardColor + card.cardNum;
+                return owner + "//" + index;
             }
             return null;
         }
