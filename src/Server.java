@@ -535,20 +535,20 @@ public class Server extends JFrame implements Serializable {
                     String roomUID = args[3];
                     Room room = roomManager.findRoomByUID(roomUID);
                     CardManager cardManager = room.getCardManager();
-                    String ownerCardOpen = cardManager.matchCard(cardOwner, cardInfo,Integer.parseInt(cardIndex));
-                    if (ownerCardOpen != null) { // 카드 맞추기 성공 시
-                        ChatMsg obcm = new ChatMsg(UserName, "SUCCESS", ownerCardOpen); // [cardOwner//index]
+                    String ownerCardIndex = cardManager.matchCard(cardOwner, cardInfo,Integer.parseInt(cardIndex));
+                    if (ownerCardIndex != null) { // 카드 맞추기 성공 시
+                        ChatMsg obcm = new ChatMsg(UserName, "SUCCESS", "match card success!");
                         WriteRoomCardInfo(obcm, room);
                         // 카드 주인의 카드 정보 방송
-                        ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN", cardIndex);
+                        ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN", ownerCardIndex); // [index]
                         WriteRoomUsers(obcm2, room);
                     }
                     else { // 카드 맞추기 실패 시
                         ChatMsg obcm = new ChatMsg(UserName, "FAIL", "match card fail!");
                         WriteChatMsg(obcm);
-                        String userCardOpen = cardManager.getObserverByName(UserName).newCardOpen();
+                        String userCardIndex = cardManager.getObserverByName(UserName).newCardOpen();
                         // 유저의 카드 정보 방송
-                        ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN", userCardOpen);
+                        ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN", userCardIndex); // [index]
                         WriteRoomUsers(obcm2, room);
                     }
                 }
@@ -825,7 +825,7 @@ public class Server extends JFrame implements Serializable {
             Card c = RoomCards.get(randomNum); // Room이 owner인 카드 벡터에서 랜덤 카드 꺼내기
             c.setOwner(owner);
             o.cards.add(c);
-            o.newCard = c;
+            o.newCardIndex = o.cards.indexOf(c);
             o.sort();
             RoomCards.remove(randomNum);// Room이 owner인 카드 벡터에서 랜덤 카드 제거
 
@@ -854,7 +854,7 @@ public class Server extends JFrame implements Serializable {
         private String owner;
         private Vector<Card> cards;
         private int score;
-        private Card newCard;
+        private int newCardIndex;
         private Comparator<Card> sortCard;
 
         public Observer(String owner) {
@@ -875,7 +875,7 @@ public class Server extends JFrame implements Serializable {
         public String matchCardInfo(String color, int num,int index) {
             Card card = cards.get(index);
             if (Objects.equals(card.cardColor, color) && card.cardNum == num) {
-                return owner + "//" + index;
+                return String.valueOf(index);
             }
             return null;
         }
@@ -895,7 +895,7 @@ public class Server extends JFrame implements Serializable {
 
         // new Card 오픈
         public String newCardOpen() {
-            return owner + "//" + newCard.cardColor + newCard.cardNum;
+            return String.valueOf(newCardIndex);
         }
 
         // 카드 정렬
