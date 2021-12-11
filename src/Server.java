@@ -531,16 +531,16 @@ public class Server extends JFrame implements Serializable {
                     String[] args = cm.data.split("//");
                     String cardOwner = args[0];
                     String cardInfo = args[1];
-                    int cardIndex = Integer.parseInt(args[2]);
+                    String cardIndex = args[2];
                     String roomUID = args[3];
                     Room room = roomManager.findRoomByUID(roomUID);
                     CardManager cardManager = room.getCardManager();
-                    String ownerCardOpen = cardManager.matchCard(cardOwner, cardInfo,cardIndex); // [cardOwner//cardInfo]
+                    String ownerCardOpen = cardManager.matchCard(cardOwner, cardInfo,Integer.parseInt(cardIndex)); // [cardOwner//cardInfo]
                     if (ownerCardOpen != null) { // 카드 맞추기 성공 시
                         ChatMsg obcm = new ChatMsg(UserName, "SUCCESS", ownerCardOpen);
-                        WriteRoomUsers(obcm, room);
+                        WriteRoomCardInfo(obcm, room);
                         // 카드 주인의 카드 정보 방송
-                        ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN", ownerCardOpen);
+                        ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN", cardIndex);
                         WriteRoomUsers(obcm2, room);
                     }
                     else { // 카드 맞추기 실패 시
