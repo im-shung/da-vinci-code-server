@@ -497,6 +497,14 @@ public class Server extends JFrame implements Serializable {
                         WriteRoomList(obcm,room);
                     }
                 }
+                // 시작 턴
+                if (cm.code.matches("START")) {
+                    String roomUID = cm.data;
+                    Room room = roomManager.findRoomByUID(roomUID);
+                    String fitstUser = room.startTurn();
+                    ChatMsg obcm = new ChatMsg(UserName, "TURN", fitstUser); // 다음 차례 유저 이름 방송
+                    WriteRoomUsers(obcm,room);
+                }
                 // 턴 
                 if (cm.code.matches("TURN")) {
                     String roomUID = cm.data;
@@ -604,6 +612,7 @@ public class Server extends JFrame implements Serializable {
         private CardManager cardManager;
 
         private int firstUserIndex = -1;
+        private int startFlag = 0;
 
         public Room(String roomName, int maxCount, String passWd) {
             this.maxCount = maxCount;
@@ -638,13 +647,20 @@ public class Server extends JFrame implements Serializable {
         public CardManager getCardManager() {
             return cardManager;
         }
-        // 다음 차례 유저 리턴
-        public String nextTurn(String currnetUser) {
-            if(firstUserIndex == -1){
+        // 시작 턴
+        public String startTurn() {
+            if (startFlag == 0){
                 firstUserIndex = new Random().nextInt(usersList.size());
                 System.out.println("firstIndex: "+firstUserIndex+"("+usersList.get(firstUserIndex)+")");
+                startFlag = 1;
                 return usersList.get(firstUserIndex);
             }
+            else {
+                return usersList.get(firstUserIndex);
+            }
+        }
+        // 다음 차례 유저 리턴
+        public String nextTurn(String currnetUser) {
             for (int i =0; i< usersList.size(); i++) {
                 if (usersList.get(i).equals(currnetUser)){
                     if (i == (usersList.size()-1) )
