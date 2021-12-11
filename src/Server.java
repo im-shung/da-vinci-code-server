@@ -541,7 +541,7 @@ public class Server extends JFrame implements Serializable {
                         WriteRoomCardInfo(obcm, room);
                         // 카드 주인의 카드 정보 방송
                         ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN", ownerCardIndex); // [index]
-                        WriteRoomUsers(obcm2, room);
+                        WriteRoomCardInfo(obcm2, room);
                     }
                     else { // 카드 맞추기 실패 시
                         ChatMsg obcm = new ChatMsg(UserName, "FAIL", "match card fail!");
@@ -549,7 +549,7 @@ public class Server extends JFrame implements Serializable {
                         String userCardIndex = cardManager.getObserverByName(UserName).newCardOpen();
                         // 유저의 카드 정보 방송
                         ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN", userCardIndex); // [index]
-                        WriteRoomUsers(obcm2, room);
+                        WriteRoomCardInfo(obcm2, room);
                     }
                 }
                 // 패스
