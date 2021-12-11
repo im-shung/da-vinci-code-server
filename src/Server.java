@@ -492,7 +492,6 @@ public class Server extends JFrame implements Serializable {
                     CardManager cardManager = room.getCardManager();
                     ArrayList<String> users = roomManager.findUsersInRoom(roomUID); // 방 안의 유저 목록
                     AppendText("방 [" + room.roomName + "] 카드 배정 시작");
-
                     for (String userName: room.usersList) {
                         ChatMsg obcm = new ChatMsg(userName, "READY", userName+ "의 카드 리스트 전송");
                         obcm.setList(cardManager.getObserverByName(userName).getCardsList()); // 방 유저 카드리스트 등록
@@ -506,7 +505,6 @@ public class Server extends JFrame implements Serializable {
                     String fitstUser = room.startTurn();
                     ChatMsg obcm = new ChatMsg(UserName, "TURN", fitstUser); // 다음 차례 유저 이름 방송
                     WriteChatMsg(obcm);
-
                 }
                 // 턴 
                 if (cm.code.matches("TURN")) {
@@ -527,15 +525,19 @@ public class Server extends JFrame implements Serializable {
                 }
                 // 카드 맞추기
                 if (cm.code.matches("MATCHCARD")) {
-
+                    //matchCard(userName,cardinfo)
                 }
                 // 패스
                 if (cm.code.matches("PASS")) {
-
+                    String roomUID = cm.data;
+                    Room room = roomManager.findRoomByUID(roomUID);
+                    String nextUser = room.nextTurn(UserName); // 현재 차례의 유저 이름을 보내면 다음 차례의 유저 이름을 리턴
+                    ChatMsg obcm = new ChatMsg(UserName, "TURN", nextUser); // 다음 차례 유저 이름 방송
+                    WriteRoomUsers(obcm,room);
                 }
                 // 카드 공개
                 if (cm.code.matches("CARDOPEN")) {
-
+                    // 자기 카드 정보 방송
                 }
                 // 랭킹보기 요청
                 if (cm.code.matches("RANK")) {
@@ -682,14 +684,7 @@ public class Server extends JFrame implements Serializable {
         public CardManager(int count){
             this.count = count;
         }
-        // 카드 맞추기
-        public void matchCard(String UserName, int cardSeq, int answer) {
-            Observer observer = getObserverByName(UserName);
-            Card card = observer.cards.get(cardSeq);
-            if (card.cardNum == answer) { // 사용자가 카드의 번호를 맞췄을 때
 
-            }
-        }
     }
     // 방 유저 observer 관리
     abstract class Subject {
@@ -788,10 +783,24 @@ public class Server extends JFrame implements Serializable {
 
             return c.cardColor+c.cardNum; // 카드 색깔+카드 번호 리턴
         }
+        // 카드 맞추기
+        public String matchCard(String UserName, String answer) { // answer = "b11"
+            Observer observer = getObserverByName(UserName); // 맞춰지는 카드 주인 observer
+            String color = answer.substring(0,1);
+            int number = Integer.parseInt(answer.substring(1));
+            
+            return observer.getCard(color,number); // 정답이면 카드 정보를, 아니면 null를 리턴
+        }
+        // 점수 리턴
+        public int getScore(String owner) {
+            Observer o = getObserverByName(owner);
+            return o.score;
+        }
     }
     class Observer {
         private String owner;
         private Vector<Card> cards ;
+        private int score;
 
         public Observer(String owner){
             this.owner = owner;
@@ -805,12 +814,24 @@ public class Server extends JFrame implements Serializable {
                 System.out.println(c.cardColor+c.cardNum);
             }
         }
+        public String getCard(String color, int num) {
+            for(Card card : cards) {
+                if(card.cardColor == color && card.cardNum == num) {
+                    return card.cardColor+card.cardNum;
+                }
+            }
+            return null;
+        }
         public ArrayList<String> getCardsList() {
             ArrayList<String> list = new ArrayList<>();
             for(Card c: cards){
                 list.add(c.cardColor+c.cardNum);
             }
             return list;
+        }
+        // 점수
+        public void scoreUp(int score) {
+            this.score += score;
         }
     }
     class Card implements Serializable {
@@ -840,6 +861,7 @@ public class Server extends JFrame implements Serializable {
         public void setOwner(String owner) {
             this.owner = owner;
         }
-    }
 
+
+    }
 }
