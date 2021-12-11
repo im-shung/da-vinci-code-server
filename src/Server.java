@@ -540,7 +540,7 @@ public class Server extends JFrame implements Serializable {
                         ChatMsg obcm = new ChatMsg(UserName, "SUCCESS", "match card success!");
                         WriteRoomCardInfo(obcm, room);
                         // 카드 주인의 카드 정보 방송
-                        ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN", ownerCardIndex); // [index]
+                        ChatMsg obcm2 = new ChatMsg(cardOwner, "CARDOPEN", ownerCardIndex); // [index]
                         WriteRoomCardInfo(obcm2, room);
                     }
                     else { // 카드 맞추기 실패 시
