@@ -680,7 +680,6 @@ public class Server extends JFrame implements Serializable {
             for (String s : usersList) {
                 Observer o = new Observer(s);
                 cardManager.attach(o); // 사용자 수만큼 observer(with user이름) 추가
-                System.out.println("Observer 추가");
             }
             cardManager.init(); // 카드 초기화
             cardManager.ready(); // 카드 나눠주기
@@ -835,10 +834,12 @@ public class Server extends JFrame implements Serializable {
 
         // 카드 맞추기
         public String matchCard(String UserName, String answer,int cardIndex) { // answer = "b11"
+            System.out.println("answer: "+ answer);
+            System.out.println("index:"+cardIndex);
             Observer observer = getObserverByName(UserName); // 맞춰지는 카드 주인 observer
             String color = answer.substring(0, 1);
             int number = Integer.parseInt(answer.substring(1));
-            System.out.println(observer.matchCardInfo(color, number,cardIndex));
+
             return observer.matchCardInfo(color, number,cardIndex); // 정답이면 카드 정보를, 아니면 null를 리턴
         }
 
@@ -873,7 +874,7 @@ public class Server extends JFrame implements Serializable {
 
         public String matchCardInfo(String color, int num,int index) {
             Card card = cards.get(index);
-            if (card.cardColor == color && card.cardNum == num) {
+            if (Objects.equals(card.cardColor, color) && card.cardNum == num) {
                 return owner + "//" + card.cardColor + card.cardNum;
             }
             return null;
