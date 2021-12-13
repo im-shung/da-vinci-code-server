@@ -545,8 +545,9 @@ public class Server extends JFrame implements Serializable {
                     String cardColor = args[1];
                     Room room = roomManager.findRoomByUID(roomUID);
                     CardManager cardManager = room.getCardManager();
-                    String cardInfo = cardManager.takeCard(UserName,cardColor);
+                    String cardInfo = cardManager.takeCard(UserName, cardColor);
                     AppendText(UserName + "이(가) 카드를 뽑았습니다.");
+                    AppendText("뽑은 카드: "+cardInfo);
                     ChatMsg obcm = new ChatMsg(UserName, "TAKECARD", cardInfo); // 랜덤 카드 정보 전송
                     WriteRoomCardInfo(obcm, room);
                 }
@@ -569,16 +570,20 @@ public class Server extends JFrame implements Serializable {
                         ChatMsg obcm = new ChatMsg(UserName, "SUCCESS", "match card success!");
                         WriteRoomCardInfo(obcm, room);
                         // 카드 주인의 카드 정보 방송
-                        ChatMsg obcm2 = new ChatMsg(cardOwner, "CARDOPEN", ownerCardIndex); // [index]
-                        WriteRoomCardInfo(obcm2, room);
+                        //ChatMsg obcm2 = new ChatMsg(cardOwner, "CARDOPEN", ownerCardIndex); // [index]
+                        obcm = new ChatMsg(cardOwner, "CARDOPEN", ownerCardIndex); // [index]
+                        //WriteRoomCardInfo(obcm2, room);
+                        WriteRoomCardInfo(obcm, room);
                     } else { // 카드 맞추기 실패 시
                         AppendText("FAIL!!!");
                         ChatMsg obcm = new ChatMsg(UserName, "FAIL", "match card fail!");
                         WriteChatMsg(obcm);
                         String userCardIndex = cardManager.getObserverByName(UserName).newCardOpen();
                         // 유저의 카드 정보 방송
-                        ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN", userCardIndex); // [index]
-                        WriteRoomCardInfo(obcm2, room);
+                        //ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN", userCardIndex); // [index]
+                        obcm = new ChatMsg(UserName, "CARDOPEN", userCardIndex); // [index]
+                        //WriteRoomCardInfo(obcm2, room);
+                        WriteRoomCardInfo(obcm, room);
                     }
                 }
                 // 패스
@@ -590,6 +595,22 @@ public class Server extends JFrame implements Serializable {
                     AppendText(nextUser + "의 턴 입니다.");
                     ChatMsg obcm = new ChatMsg(UserName, "TURN", nextUser); // 다음 차례 유저 이름 방송
                     WriteRoomUsers(obcm, room);
+                }
+                // JOKER
+                if (cm.code.matches("JOKER")) {
+                    String[] args = cm.data.split("//");
+                    String roomUID = args[0];
+                    String cardColor = args[1];
+                    String isOpened = args[2];
+                    String from = args[3];
+                    String to = args[4];
+                    Room room = roomManager.findRoomByUID(roomUID);
+                    CardManager cardManager = room.getCardManager();
+                    AppendText(UserName+"이(가) 조커 위치를 이동.");
+                    cardManager.joker(UserName,from,to);
+                    String msg = roomUID+"//"+cardColor+"//"+isOpened+"//"+from+"//"+to+"//"+UserName;
+                    ChatMsg obcm = new ChatMsg(UserName, "JOKER", msg);
+                    WriteRoomUsers(obcm,room);
                 }
                 // 랭킹보기 요청
                 if (cm.code.matches("RANK")) {
@@ -787,21 +808,17 @@ public class Server extends JFrame implements Serializable {
             }
             return null;
         }
-
         public void attach(Observer observer) {
             observers.add(observer);
         }
-
         public void detach(Observer observer) {
             observers.remove(observer);
         }
-
         public void notifyObservers() {
             for (Observer o : observers) {
                 o.update();
             }
         }
-
         // 카드 초기화
         public void init() {
             // 카드 초기화 (WHITE 0-11, BLACK 0-11, WHITE 조커, BLACK 조커)
@@ -813,7 +830,6 @@ public class Server extends JFrame implements Serializable {
             RoomCards.add(new Card(WHITE, true));
             RoomCards.add(new Card(BLACK, true));
         }
-
         // 카드 나눠주기 // [2-3인] : 4개, [4인] : 3개
         public void ready() {
             int randomIndex;
@@ -851,16 +867,15 @@ public class Server extends JFrame implements Serializable {
                 System.out.println("------------------------------------------");
             }
         }
-
         // 카드 뽑기
         public String takeCard(String owner, String color) {
             Observer o = getObserverByName(owner);
             int randomIndex;
             Card c;
             Random random = new Random();
-            System.out.println("원하는 컬러: "+color);
+            System.out.println("원하는 컬러: " + color);
 
-            while(true) {
+            while (true) {
                 randomIndex = random.nextInt(RoomCards.size()); // 남아있는 카드 중 하나 뽑기
                 c = RoomCards.get(randomIndex); // Room이 owner인 카드 벡터에서 랜덤 카드 꺼내기
                 if (c.cardColor.equals(color)) break;
@@ -869,7 +884,7 @@ public class Server extends JFrame implements Serializable {
             selectedNum.add(randomIndex); // 선택된 숫자를 selectedNum리스트에 저장
 
             c.setOwner(owner);
-            System.out.println("뽑힌 컬러: "+c.cardColor);
+            System.out.println("뽑힌 컬러: " + c.cardColor);
             o.cards.add(c);
             o.newCardIndex = o.cards.indexOf(c);
             o.sort();
@@ -877,7 +892,6 @@ public class Server extends JFrame implements Serializable {
 
             return c.cardColor + c.cardNum; // 카드 색깔+카드 번호 리턴
         }
-
         // 카드 맞추기
         public String matchCard(String UserName, String answer, int cardIndex) { // answer = "b11"
             System.out.println("answer: " + answer);
@@ -888,7 +902,15 @@ public class Server extends JFrame implements Serializable {
 
             return observer.matchCardInfo(color, number, cardIndex); // 정답이면 카드 정보를, 아니면 null를 리턴
         }
-
+        // 조커 upate
+        public void joker(String UserName, String from, String to) {
+            Observer observer = getObserverByName(UserName); // 카드 주인 observer
+            Card joker = observer.cards.get(Integer.parseInt(from));
+            AppendText("조커의 원래 위치: "+from);
+            observer.cards.remove(joker);
+            observer.cards.add(joker);
+            AppendText("조커의 바뀐 위치: "+to);
+        }
     }
 
     class Observer {
