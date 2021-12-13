@@ -95,8 +95,8 @@ public class Server extends JFrame implements Serializable {
                     // TODO Auto-generated catch block
                     e1.printStackTrace();
                 }
-                AppendText("Chat Server Running..");
-                btnServerStart.setText("Chat Server Running..");
+                AppendText("[Davinci Code] Server Running~!");
+                btnServerStart.setText("[Davinci Code] Server Running~!");
                 btnServerStart.setEnabled(false); // 서버를 더이상 실행시키지 못 하게 막는다
                 txtPortNumber.setEnabled(false); // 더이상 포트번호 수정못 하게 막는다
                 AcceptServer accept_server = new AcceptServer();
@@ -113,14 +113,14 @@ public class Server extends JFrame implements Serializable {
         public void run() {
             while (true) { // 사용자 접속을 계속해서 받기 위해 while문
                 try {
-                    AppendText("Waiting new clients ...");
+                    //AppendText("Waiting new clients ...");
                     client_socket = socket.accept(); // accept가 일어나기 전까지는 무한 대기중
-                    AppendText("새로운 참가자 from " + client_socket);
+                    System.out.println("새로운 참가자 from " + client_socket);
                     // User 당 하나씩 Thread 생성
                     UserService new_user = new UserService(client_socket);
                     allUser.add(new_user); // 새로운 참가자 배열에 추가
                     new_user.start(); // 만든 객체의 스레드 실행
-                    AppendText("현재 참가자 수 " + allUser.size());
+                    System.out.println("현재 참가자 수 : " + allUser.size());
                 } catch (IOException e) {
                     AppendText("accept() error");
                     //System.exit(0);
@@ -138,7 +138,8 @@ public class Server extends JFrame implements Serializable {
     public void AppendObject(ChatMsg msg) {
         // textArea.append("사용자로부터 들어온 object : " + str+"\n");
         String s = String.format("From 【%s】 code = %s ┃ data = %s\n", msg.UserName, msg.code, msg.data);
-        textArea.append(s);
+        System.out.print(s);
+        //textArea.append(s);
 		/*textArea.append("code = " + msg.code + "\n");
 		textArea.append("id = " + msg.UserName + "\n");
 		textArea.append("data = " + msg.data + "\n");*/
@@ -401,7 +402,7 @@ public class Server extends JFrame implements Serializable {
                 // 방 목록 요청
                 if (cm.code.matches("ROOMLIST")) {
                     ArrayList<String> roomsListInfo = roomManager.getRoomsListInfo();
-                    AppendText(UserName + "에게 방 목록을 전송합니다.");
+                    //AppendText(UserName + "에게 방 목록을 전송합니다.");
                     ChatMsg obcm = new ChatMsg(UserName, "ROOMLIST", "RoomList");
                     obcm.setList(roomsListInfo);
                     WriteChatList(obcm);
@@ -421,10 +422,9 @@ public class Server extends JFrame implements Serializable {
                         ChatMsg obcm = new ChatMsg(UserName, "ROOMCREATE", "MaxCountUp");
                         WriteChatMsg(obcm);
                     } else { // 인원 수 적절 -> 방을 생성
+                        AppendText(UserName + "이(가) 요청한 방을 생성합니다. (현재 방 "  + roomManager.roomVec.size()+"개)");
                         Room room = new Room(roomName, maxCount, passWd);
                         roomManager.addRoom(room);
-                        AppendText(UserName + "이 요청한 방을 생성합니다.");
-                        AppendText("현재 방의 수는 " + roomManager.roomVec.size());
                         ChatMsg obcm = new ChatMsg(UserName, "ROOMCREATE", roomManager.getRoomInfo(room));
                         WriteAllObject(obcm); // 모든 유저들에게 방 정보를 알린다.
                     }
@@ -437,18 +437,18 @@ public class Server extends JFrame implements Serializable {
                     Room room = roomManager.findRoomByPwd(requestedId, requestedPassWd);
                     if (room != null) { // 해당 방이 있으면
                         if (room.currentCount < room.maxCount) { // 방 인원 수가 최대 인원 수 보다 적을 때
-                            room.addUser(this);
-                            AppendText("방 [" + room.roomName + "] 에 " + UserName + "참가");
+                            roomManager.addUser(room,this);
+                            AppendText("방 [" + room.roomName + "] " + UserName + " 참가.");
                             String roomInfo = roomManager.getRoomInfo(room);
                             ChatMsg obcm = new ChatMsg(UserName, "ROOMIN", roomInfo);
                             WriteAllObject(obcm); // 모든 유저들에게 방 정보 변경을 알린다.
                         } else { // 방 인원 수가 다 찼을 때
-                            AppendText("[" + room.roomName + "] 의 인원이 다 찼습니다.");
+                            AppendText("[" + room.roomName + "] 인원이 다 찼습니다.");
                             ChatMsg obcm = new ChatMsg(UserName, "ROOMIN", "MaxCount");
                             WriteOne("Room count is max");
                         }
                     } else { // 방이 없으면
-                        AppendText("[" + requestedId + "]" + "은 존재하지 않습니다.");
+                        AppendText("[" + requestedId + "]" + "은(는) 존재하지 않습니다.");
                         ChatMsg obcm = new ChatMsg(UserName, "ROOMIN", "NotExist"); // 요청 보낸 유저에게 참가 거절 메세지를 보낸다.
                         WriteChatMsg(obcm);
                     }
@@ -459,7 +459,7 @@ public class Server extends JFrame implements Serializable {
                     ArrayList<String> users = roomManager.findUsersInRoom(roomUID);
                     Room room = roomManager.findRoomByUID(roomUID);
                     if (users != null) {
-                        AppendText("방 [" + room.roomName + "] 정보 유저들에게 전송");
+                        AppendText("방 [" + room.roomName + "] "+UserName+"에게 방참가자 목록 전송.");
                         ChatMsg obcm = new ChatMsg(UserName, "ROOMUSERLIST", "send room user list!");
                         obcm.setList(users);
                         WriteRoomList(obcm, room);
@@ -482,7 +482,7 @@ public class Server extends JFrame implements Serializable {
                     ArrayList<String> users = roomManager.findUsersInRoom(roomUID); // 방 안의 유저 목록
                     Room room = roomManager.findRoomByUID(roomUID);
                     if (users != null) {
-                        AppendText("방 [" + room.roomName + "] 정보 유저들에게 전송");
+                        AppendText("\t**********방 [" + room.roomName + "] 게임 시작**********");
                         ChatMsg obcm = new ChatMsg(UserName, "GAMESTART", roomUID);
                         WriteRoomUsers(obcm, room); // 방 안의 모든 유저들에게 전송
                     }
@@ -494,7 +494,7 @@ public class Server extends JFrame implements Serializable {
                     Room room = roomManager.findRoomByUID(roomUID);
                     CardManager cardManager = room.getCardManager();
                     ArrayList<String> users = roomManager.findUsersInRoom(roomUID); // 방 안의 유저 목록
-                    AppendText("방 [" + room.roomName + "] 카드 배정 시작");
+                    AppendText("\t**********방 [" + room.roomName + "] 카드 배정 시작**********");
                     for (String userName : room.usersList) {
                         ChatMsg obcm = new ChatMsg(userName, "READY", userName + "의 카드 리스트 전송");
                         obcm.setList(cardManager.getObserverByName(userName).getCardsList()); // 방 유저 카드리스트 등록
@@ -513,7 +513,8 @@ public class Server extends JFrame implements Serializable {
                 if (cm.code.matches("TURN")) {
                     String roomUID = cm.data;
                     Room room = roomManager.findRoomByUID(roomUID);
-                    String nextUser = room.nextTurn(UserName); // 현재 차례의 유저 이름을 보내면 다음 차례의 유저 이름을 리턴 
+                    String nextUser = room.nextTurn(UserName); // 현재 차례의 유저 이름을 보내면 다음 차례의 유저 이름을 리턴
+                    AppendText(nextUser+"의 턴입니다.");
                     ChatMsg obcm = new ChatMsg(UserName, "TURN", nextUser); // 다음 차례 유저 이름 방송
                     WriteRoomUsers(obcm, room);
                 }
@@ -523,6 +524,7 @@ public class Server extends JFrame implements Serializable {
                     Room room = roomManager.findRoomByUID(roomUID);
                     CardManager cardManager = room.getCardManager();
                     String cardInfo = cardManager.takeCard(UserName);
+                    AppendText(UserName+"이(가) 카드를 뽑았습니다.");
                     ChatMsg obcm = new ChatMsg(UserName, "TAKECARD", cardInfo); // 랜덤 카드 정보 전송
                     WriteRoomCardInfo(obcm, room);
                 }
@@ -535,8 +537,13 @@ public class Server extends JFrame implements Serializable {
                     String roomUID = args[3];
                     Room room = roomManager.findRoomByUID(roomUID);
                     CardManager cardManager = room.getCardManager();
+
+                    AppendText(UserName+"이(가) "+cardOwner+"의 "+(Integer.parseInt(cardIndex)+1)+"번째 카드를 지목했습니다.");
+                    AppendText("예상 값: [" + cardInfo + "]");
+
                     String ownerCardIndex = cardManager.matchCard(cardOwner, cardInfo,Integer.parseInt(cardIndex));
                     if (ownerCardIndex != null) { // 카드 맞추기 성공 시
+                        AppendText("SUCCESS!!!");
                         ChatMsg obcm = new ChatMsg(UserName, "SUCCESS", "match card success!");
                         WriteRoomCardInfo(obcm, room);
                         // 카드 주인의 카드 정보 방송
@@ -544,6 +551,7 @@ public class Server extends JFrame implements Serializable {
                         WriteRoomCardInfo(obcm2, room);
                     }
                     else { // 카드 맞추기 실패 시
+                        AppendText("FAIL!!!");
                         ChatMsg obcm = new ChatMsg(UserName, "FAIL", "match card fail!");
                         WriteChatMsg(obcm);
                         String userCardIndex = cardManager.getObserverByName(UserName).newCardOpen();
@@ -557,6 +565,8 @@ public class Server extends JFrame implements Serializable {
                     String roomUID = cm.data;
                     Room room = roomManager.findRoomByUID(roomUID);
                     String nextUser = room.nextTurn(UserName); // 현재 차례의 유저 이름을 보내면 다음 차례의 유저 이름을 리턴
+                    AppendText(UserName+"이(가) PASS를 선택했습니다.");
+                    AppendText(nextUser+"의 턴 입니다.");
                     ChatMsg obcm = new ChatMsg(UserName, "TURN", nextUser); // 다음 차례 유저 이름 방송
                     WriteRoomUsers(obcm, room);
                 }
@@ -575,6 +585,7 @@ public class Server extends JFrame implements Serializable {
     // Room 관리 클래스
     class RoomManager {
         private Vector<Room> roomVec = new Vector<Room>(); // 현재 서버에 존재하는 Room 목록을 저장하는 벡터
+        private HashMap<Object, String> allRoomUsers = new HashMap<Object, String>();
 
         public Vector<Room> getRoomVec() {
             return roomVec;
@@ -592,7 +603,6 @@ public class Server extends JFrame implements Serializable {
         public String getRoomInfo(Room r) {
             return r.roomName + "//" + r.roomUID + "//" + r.maxCount + "//" + r.currentCount;
         }
-
         // 방 목록
         public ArrayList<String> getRoomsListInfo() {
             ArrayList<String> roomList = new ArrayList<String>();
@@ -602,7 +612,6 @@ public class Server extends JFrame implements Serializable {
             }
             return roomList;
         }
-
         // UID로 방 찾기
         public Room findRoomByUID(String requestedId) {
             for (Room room : roomVec) {
@@ -612,7 +621,6 @@ public class Server extends JFrame implements Serializable {
             }
             return null;
         }
-
         // UID와 패스워드로 방 찾기
         public Room findRoomByPwd(String requestedId, String requestedPasswd) {
             for (Room room : roomVec) {
@@ -624,7 +632,6 @@ public class Server extends JFrame implements Serializable {
             }
             return null;
         }
-
         // UID로 방 이용자 모두 찾기
         public ArrayList<String> findUsersInRoom(String UID) {
             for (Room room : roomVec) {
@@ -634,7 +641,18 @@ public class Server extends JFrame implements Serializable {
             }
             return null;
         }
+        // 방 유저 입장
+        public void addUser(Room room,UserService userService) {
+            room.addUser(userService);
+            allRoomUsers.put(userService,String.valueOf(room.roomUID));
+        }
+        // 방 유저 퇴장
+        public void removeUser(UserService userService) {
+            Room room = findRoomByUID(allRoomUsers.get(userService));
+            allRoomUsers.remove(userService);
+            room.removeUser(userService);
 
+        }
     }
 
     // ROOM
@@ -659,7 +677,7 @@ public class Server extends JFrame implements Serializable {
             this.roomUID = UUID.randomUUID(); // Room UID 생성
 
             String roomInfo = String.format("방 이름: %s / 제한 인원: %d / 비밀번호: %s", roomName, maxCount, passWd);
-            AppendText("새로운 방 생성 [" + roomInfo + "]");
+            AppendText("[" + roomInfo + "]");
         }
 
         // Room UID
@@ -672,6 +690,12 @@ public class Server extends JFrame implements Serializable {
             usersList.add(user.UserName);
             user.WriteOne("Welcome to Room");
             currentCount++;
+        }
+
+        // Room에 사용자 제거
+        public void removeUser(UserService user) {
+            usersList.remove(user.UserName);
+            currentCount--;
         }
 
         // 게임 시작, user observer 생성
@@ -697,6 +721,7 @@ public class Server extends JFrame implements Serializable {
                 startFlag = 1;
                 return usersList.get(firstUserIndex);
             } else {
+                AppendText(usersList.get(firstUserIndex)+"의 턴 입니다.");
                 return usersList.get(firstUserIndex);
             }
         }
@@ -875,6 +900,7 @@ public class Server extends JFrame implements Serializable {
         public String matchCardInfo(String color, int num,int index) {
             Card card = cards.get(index);
             if (Objects.equals(card.cardColor, color) && card.cardNum == num) {
+                AppendText("실제 값: [" + card.cardColor+card.cardNum + "]");
                 return String.valueOf(index);
             }
             return null;
