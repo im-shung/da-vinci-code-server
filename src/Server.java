@@ -547,7 +547,7 @@ public class Server extends JFrame implements Serializable {
                     CardManager cardManager = room.getCardManager();
                     String cardInfo = cardManager.takeCard(UserName, cardColor);
                     AppendText(UserName + "이(가) 카드를 뽑았습니다.");
-                    AppendText("뽑은 카드: "+cardInfo);
+                    AppendText("뽑은 카드: "+cardInfo + "(남은 카드 수 "+cardManager.getCurrentCardSize()+")");
                     ChatMsg obcm = new ChatMsg(UserName, "TAKECARD", cardInfo); // 랜덤 카드 정보 전송
                     WriteRoomCardInfo(obcm, room);
                 }
@@ -723,25 +723,21 @@ public class Server extends JFrame implements Serializable {
             String roomInfo = String.format("방 이름: %s / 제한 인원: %d / 비밀번호: %s", roomName, maxCount, passWd);
             AppendText("[" + roomInfo + "]");
         }
-
         // Room UID
         public String getRoomUID() {
             return roomUID.toString();
         }
-
         // Room에 사용자 추가
         public void addUser(UserService user) {
             usersList.add(user.UserName);
             user.WriteOne("Welcome to Room");
             currentCount++;
         }
-
         // Room에 사용자 제거
         public void removeUser(UserService user) {
             usersList.remove(user.UserName);
             currentCount--;
         }
-
         // 게임 시작, user observer 생성
         public void startGame() {
             this.cardManager = new CardManager(currentCount);
@@ -752,11 +748,9 @@ public class Server extends JFrame implements Serializable {
             cardManager.init(); // 카드 초기화
             cardManager.ready(); // 카드 나눠주기
         }
-
         public CardManager getCardManager() {
             return cardManager;
         }
-
         // 시작 턴
         public String startTurn() {
             if (startFlag == 0) {
@@ -769,7 +763,6 @@ public class Server extends JFrame implements Serializable {
                 return usersList.get(firstUserIndex);
             }
         }
-
         // 다음 차례 유저 리턴
         public String nextTurn(String currnetUser) {
             for (int i = 0; i < usersList.size(); i++) {
@@ -875,6 +868,9 @@ public class Server extends JFrame implements Serializable {
             Random random = new Random();
             System.out.println("원하는 컬러: " + color);
 
+            if (RoomCards.size() == 0)
+                return "EMPTY";
+
             while (true) {
                 randomIndex = random.nextInt(RoomCards.size()); // 남아있는 카드 중 하나 뽑기
                 c = RoomCards.get(randomIndex); // Room이 owner인 카드 벡터에서 랜덤 카드 꺼내기
@@ -910,6 +906,10 @@ public class Server extends JFrame implements Serializable {
             observer.cards.remove(joker);
             observer.cards.add(joker);
             AppendText("조커의 바뀐 위치: "+to);
+        }
+        // 남은 카드 개수
+        public String getCurrentCardSize() {
+            return String.valueOf(RoomCards.size());
         }
     }
 
