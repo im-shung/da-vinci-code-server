@@ -547,7 +547,7 @@ public class Server extends JFrame implements Serializable {
                     CardManager cardManager = room.getCardManager();
                     String cardInfo = cardManager.takeCard(UserName, cardColor);
                     AppendText(UserName + "이(가) 카드를 뽑았습니다.");
-                    AppendText("뽑은 카드: "+cardInfo + "(남은 카드 수 "+cardManager.getCurrentCardSize()+")");
+                    AppendText("뽑은 카드: "+cardInfo + " (남은 카드 수 "+cardManager.getCurrentCardSize()+")");
                     ChatMsg obcm = new ChatMsg(UserName, "TAKECARD", cardInfo); // 랜덤 카드 정보 전송
                     WriteRoomCardInfo(obcm, room);
                 }
@@ -614,7 +614,7 @@ public class Server extends JFrame implements Serializable {
                 }
                 // 랭킹보기 요청
                 if (cm.code.matches("RANK")) {
-
+                    String roomUID = cm.data;
                 }
             } // while
         } // run
@@ -791,7 +791,7 @@ public class Server extends JFrame implements Serializable {
     abstract class Subject {
         private List<Observer> observers = new ArrayList<Observer>();
         private Vector<Card> RoomCards; // 남아있는 카드 벡터
-        private ArrayList<Integer> selectedNum = new ArrayList<>();
+        private ArrayList<Integer> selectedNum ;
 
         public Observer getObserverByName(String UserName) {
             for (Observer o : observers) {
@@ -862,6 +862,7 @@ public class Server extends JFrame implements Serializable {
         }
         // 카드 뽑기
         public String takeCard(String owner, String color) {
+            selectedNum = new ArrayList<>();
             Observer o = getObserverByName(owner);
             int randomIndex;
             Card c;
@@ -927,13 +928,11 @@ public class Server extends JFrame implements Serializable {
         public void update() {
             //cards =
         }
-
         public void print() {
             for (Card c : cards) {
                 System.out.println(c.cardColor + c.cardNum);
             }
         }
-
         public String matchCardInfo(String color, int num, int index) {
             Card card = cards.get(index);
             if (Objects.equals(card.cardColor, color) && card.cardNum == num) {
@@ -942,7 +941,6 @@ public class Server extends JFrame implements Serializable {
             }
             return null;
         }
-
         public ArrayList<String> getCardsList() {
             ArrayList<String> list = new ArrayList<>();
             for (Card c : cards) {
@@ -950,12 +948,10 @@ public class Server extends JFrame implements Serializable {
             }
             return list;
         }
-
         // new Card 오픈
         public String newCardOpen() {
             return String.valueOf(newCardIndex);
         }
-
         // 카드 정렬
         public void sort() {
             sortCard = new Comparator<Card>() {
