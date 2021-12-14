@@ -570,7 +570,7 @@ public class Server extends JFrame implements Serializable {
                     WriteRoomCardInfo(obcm, room);
 
                     // 유저의 모든 카드가 오픈되었을 때
-                    cardOpenWithCondition(cardManager,room,obcm,UserName);
+                    cardOpenWithCondition(cardManager,room,UserName);
                 }
                 // 카드 맞추기
                 if (cm.code.matches("MATCHCARD")) {
@@ -600,7 +600,7 @@ public class Server extends JFrame implements Serializable {
                         WriteRoomCardInfo(obcm, room);
 
                         // 유저의 모든 카드가 오픈되었을 때
-                        cardOpenWithCondition(cardManager,room,obcm,cardOwner);
+                        cardOpenWithCondition(cardManager,room,cardOwner);
                     }
                     // 카드 맞추기 실패 시 -> 자기 카드 공개
                     else {
@@ -621,7 +621,7 @@ public class Server extends JFrame implements Serializable {
                             WriteRoomCardInfo(obcm, room);
 
                             // 유저의 모든 카드가 오픈되었을 때
-                            cardOpenWithCondition(cardManager,room,obcm,UserName);
+                            cardOpenWithCondition(cardManager,room,UserName);
                         }
                     }
                 }
@@ -662,7 +662,7 @@ public class Server extends JFrame implements Serializable {
                 }
             } // while
         } // run
-        public void cardOpenWithCondition(CardManager cardManager,Room room,ChatMsg obcm,String name) {
+        public void cardOpenWithCondition(CardManager cardManager,Room room,String name) {
             // user의 모든 카드가 공개됨
             if (cardManager.isSameCardOpens(name)) {
                 // 한명(Winner) 빼고 모든 유저의 카드가 오픈되었을 때
@@ -671,18 +671,18 @@ public class Server extends JFrame implements Serializable {
                     String winner = rankList.get(rankList.size()-1);
                     AppendText(winner+"을(를) 제외한 모든 유저의 카드가 공개되었습니다.");
                     AppendText("방 ["+room.roomName+"] 순위입니다.");
-                    for(int i = rankList.size(); i >= 0; i--) {
-                        AppendText((i-rankList.size()+1)+"등은 "+rankList.get(i-rankList.size()));
+                    for(int i = rankList.size()-1; i >= 0; i--) { // 1,0
+                        AppendText((rankList.size()-1)+"등은 "+rankList.get(i));
                     }
                     AppendText("\t**********방 [" + room.roomName + "] Game Over**********");
-                    obcm = new ChatMsg(name, "GAMEOVER", "Winner is"+winner);
+                    ChatMsg obcm = new ChatMsg(name, "GAMEOVER", "Winner is "+winner+"!!!");
                     obcm.setList(cardManager.ownerIsOpened); // 랭크 리스트를 보낸다
                     WriteRoomList(obcm, room);
                 }
                 // 아직 카드가 다 오픈되지 않은 유저가 있을 때 (3인 이상)
                 else {
                     AppendText(name+"의 카드가 공개되었습니다.");
-                    obcm = new ChatMsg(name, "LOOSE", name);
+                    ChatMsg obcm = new ChatMsg(name, "LOOSE", name);
                     WriteRoomUsers(obcm, room);
                 }
             }
