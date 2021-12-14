@@ -565,7 +565,7 @@ public class Server extends JFrame implements Serializable {
                     AppendText("예상 값: [" + cardInfo + "]");
 
                     String ownerCardIndex = cardManager.matchCard(cardOwner, cardInfo, Integer.parseInt(cardIndex));
-                    if (ownerCardIndex != null) { // 카드 맞추기 성공 시
+                    if (ownerCardIndex != null) { // 카드 맞추기 성공 시 -> 남의 카드 공개
                         AppendText("SUCCESS!!!");
                         ChatMsg obcm = new ChatMsg(UserName, "SUCCESS", "match card success!");
                         WriteRoomCardInfo(obcm, room);
@@ -574,17 +574,22 @@ public class Server extends JFrame implements Serializable {
                         obcm = new ChatMsg(cardOwner, "CARDOPEN", ownerCardIndex); // [index]
                         //WriteRoomCardInfo(obcm2, room);
                         WriteRoomCardInfo(obcm, room);
-                    } else { // 카드 맞추기 실패 시
+                    } else { // 카드 맞추기 실패 시 -> 자기 카드 공개
                         AppendText("FAIL!!!");
                         ChatMsg obcm = new ChatMsg(UserName, "FAIL", "match card fail!");
                         WriteChatMsg(obcm);
-                        String userCardIndex = cardManager.getObserverByName(UserName).newCardOpen();
-                        // 유저의 카드 정보 방송
-                        //ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN", userCardIndex); // [index]
-                        obcm = new ChatMsg(UserName, "CARDOPEN", userCardIndex); // [index]
-                        //WriteRoomCardInfo(obcm2, room);
-                        WriteRoomCardInfo(obcm, room);
+                        if(!cardManager.isSameCardOpens(UserName)) { // 공개된 카드 개수 == 가지고 있는 카드 개수
+                            String userCardIndex = cardManager.getObserverByName(UserName).newCardOpen(); // 유저가 뽑은 새 카드 인덱스
+                            // 유저의 카드 정보 방송
+                            //ChatMsg obcm2 = new ChatMsg(UserName, "CARDOPEN", userCardIndex); // [index]
+                            obcm = new ChatMsg(UserName, "CARDOPEN", userCardIndex); // [index]
+                            //WriteRoomCardInfo(obcm2, room);
+                            WriteRoomCardInfo(obcm, room);
+                        }
                     }
+                }
+                if (cm.code.matches("CARDSELECT")) {
+
                 }
                 // 패스
                 if (cm.code.matches("PASS")) {
@@ -615,6 +620,11 @@ public class Server extends JFrame implements Serializable {
                 // 랭킹보기 요청
                 if (cm.code.matches("RANK")) {
                     String roomUID = cm.data;
+                    Room room = roomManager.findRoomByUID(roomUID);
+                    CardManager cardManager = room.getCardManager();
+                    ChatMsg obcm = new ChatMsg(UserName, "RANK", "랭크");
+                    obcm.setList(cardManager.rank());
+                    WriteRoomList(obcm,room);
                 }
             } // while
         } // run
@@ -792,6 +802,7 @@ public class Server extends JFrame implements Serializable {
         private List<Observer> observers = new ArrayList<Observer>();
         private Vector<Card> RoomCards; // 남아있는 카드 벡터
         private ArrayList<Integer> selectedNum ;
+        private ArrayList<String> ownerIsOpened;
 
         public Observer getObserverByName(String UserName) {
             for (Observer o : observers) {
@@ -912,6 +923,20 @@ public class Server extends JFrame implements Serializable {
         public String getCurrentCardSize() {
             return String.valueOf(RoomCards.size());
         }
+        // 카드가 모두 공개되었는지 순
+        public ArrayList<String> rank() {
+            for (Observer o : observers) {
+                if(o.IsAllCardsOpen()) // 모든 카드가 공개되었음
+                    if(!ownerIsOpened.contains(o.owner))
+                        ownerIsOpened.add(o.owner); // 리스트에 추가
+            }
+            return ownerIsOpened;
+        }
+        // userName의 모든 카드가 isOpened인지 감시
+        public boolean isSameCardOpens(String userName) {
+            rank();
+            return ownerIsOpened.contains(userName);
+        }
     }
 
     class Observer {
@@ -933,10 +958,12 @@ public class Server extends JFrame implements Serializable {
                 System.out.println(c.cardColor + c.cardNum);
             }
         }
+        // 카드 맞추기
         public String matchCardInfo(String color, int num, int index) {
             Card card = cards.get(index);
             if (Objects.equals(card.cardColor, color) && card.cardNum == num) {
                 AppendText("실제 값: [" + card.cardColor + card.cardNum + "]");
+                card.isOpened = true;
                 return String.valueOf(index);
             }
             return null;
@@ -950,6 +977,7 @@ public class Server extends JFrame implements Serializable {
         }
         // new Card 오픈
         public String newCardOpen() {
+            cards.get(newCardIndex).isOpened = true;
             return String.valueOf(newCardIndex);
         }
         // 카드 정렬
@@ -975,6 +1003,15 @@ public class Server extends JFrame implements Serializable {
 
             };
             cards.sort(sortCard); // 정렬
+        }
+        // 카드 오픈 리턴
+        public boolean IsAllCardsOpen() {
+            int count = 0;
+            for(Card c: cards) {
+                if(c.isOpened)
+                    count++;
+            }
+            return count == cards.size();
         }
     }
 
