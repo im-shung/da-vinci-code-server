@@ -657,17 +657,11 @@ public class Server extends JFrame implements Serializable {
                     ChatMsg obcm = new ChatMsg(UserName, "JOKER", msg);
                     WriteRoomUsers(obcm,room);
                 }
-                // 랭킹보기 요청
-                if (cm.code.matches("RANK")) {
-                    String roomUID = cm.data;
-                    Room room = roomManager.findRoomByUID(roomUID);
-                    CardManager cardManager = room.getCardManager();
-                    ChatMsg obcm = new ChatMsg(UserName, "RANK", "랭크");
-                    obcm.setList(cardManager.getOwnerIsOpened());
-                    WriteRoomList(obcm,room);
-                }
             } // while
         } // run
+
+        // 카드를 맞춰서 cardOwner의 모든 카드가 공개된 경우
+        // 프로토콜 GAMEOVER || LOOSE를 결정하는 로직
         public void cardOpenWithCondition(CardManager cardManager,Room room,String name) {
                 // 한명(Winner) 빼고 모든 유저의 카드가 오픈되었을 때
                 if (cardManager.ownerIsOpened.size() == cardManager.observers.size()-1)
@@ -905,9 +899,14 @@ public class Server extends JFrame implements Serializable {
             int randomIndex;
             int flag = 0;
             int j;
+            int currentCount = 0;
             Random random = new Random();
+            if (observers.size() == 2 || observers.size() == 3)
+                currentCount = 4;
+            else if(observers.size() == 4)
+                currentCount = 3;
             for (Observer o : observers) { // 방의 사용자 수만큼 돌기
-                for (int i = 0; i < 3; i++) {
+                for (int i = 0; i < currentCount; i++) {
                     do { // 중복 없이 랜덤 숫자 뽑기
                         randomIndex = random.nextInt(RoomCards.size()); // 총 카드 수: 26
 
