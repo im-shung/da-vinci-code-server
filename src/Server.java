@@ -801,8 +801,8 @@ public class Server extends JFrame implements Serializable {
     abstract class Subject {
         private List<Observer> observers = new ArrayList<Observer>();
         private Vector<Card> RoomCards; // 남아있는 카드 벡터
-        private ArrayList<Integer> selectedNum ;
-        private ArrayList<String> ownerIsOpened;
+        private ArrayList<Integer> selectedNum = new ArrayList<>();
+        private ArrayList<String> ownerIsOpened = new ArrayList<>();;
 
         public Observer getObserverByName(String UserName) {
             for (Observer o : observers) {
@@ -1039,6 +1039,8 @@ public class Server extends JFrame implements Serializable {
             this.cardColor = color;
             this.cardNum = -1;
             this.isJocker = isJocker;
+            this.isOpened = false;
+            this.isNewOpened = false;
         }
 
         public void setOwner(String owner) {
