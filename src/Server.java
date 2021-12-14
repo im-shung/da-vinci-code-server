@@ -350,6 +350,8 @@ public class Server extends JFrame implements Serializable {
 
         public void WriteChatMsg(ChatMsg obj) {
             try {
+                String s = String.format("To 【%s】 code = %s ┃ data = %s\n", obj.UserName, obj.code, obj.data);
+                System.out.print(s);
                 oos.writeObject(obj.code);
                 oos.writeObject(obj.UserName);
                 oos.writeObject(obj.data);
@@ -374,6 +376,8 @@ public class Server extends JFrame implements Serializable {
         // 클라이언트에게 목록 형식으로 보낼 때 사용
         public void WriteChatList(ChatMsg obj) {
             try {
+                String s = String.format("To 【%s】 code = %s ┃ data = %s ┃ list = %s\n", obj.UserName, obj.code, obj.data,obj.list);
+                System.out.print(s);
                 oos.writeObject(obj.code);
                 oos.writeObject(obj.UserName);
                 oos.writeObject(obj.data);
@@ -545,6 +549,7 @@ public class Server extends JFrame implements Serializable {
                     String cardColor = args[1];
                     Room room = roomManager.findRoomByUID(roomUID);
                     CardManager cardManager = room.getCardManager();
+                    // 랜덤 카드 뽑기
                     String cardInfo = cardManager.takeCard(UserName, cardColor);
                     AppendText(UserName + "이(가) 카드를 뽑았습니다.");
                     AppendText("뽑은 카드: "+cardInfo + " (남은 카드 수 "+cardManager.getCurrentCardSize()+")");
@@ -565,7 +570,7 @@ public class Server extends JFrame implements Serializable {
                     WriteRoomCardInfo(obcm, room);
 
                     // 유저의 모든 카드가 오픈되었을 때
-                    cardOpenWithCondition(cardManager,room,obcm);
+                    cardOpenWithCondition(cardManager,room,obcm,UserName);
                 }
                 // 카드 맞추기
                 if (cm.code.matches("MATCHCARD")) {
@@ -594,10 +599,8 @@ public class Server extends JFrame implements Serializable {
                         obcm = new ChatMsg(cardOwner, "CARDOPEN", ownerCardIndex);
                         WriteRoomCardInfo(obcm, room);
 
-                        if (cardManager.isSameCardOpens(UserName)) { // cardOwner의 모든 카드가 공개됨을 알림
-                            obcm = new ChatMsg(UserName, "LOOSE", cardOwner);
-                            WriteRoomUsers(obcm, room);
-                        }
+                        // 유저의 모든 카드가 오픈되었을 때
+                        cardOpenWithCondition(cardManager,room,obcm,cardOwner);
                     }
                     // 카드 맞추기 실패 시 -> 자기 카드 공개
                     else {
@@ -618,7 +621,7 @@ public class Server extends JFrame implements Serializable {
                             WriteRoomCardInfo(obcm, room);
 
                             // 유저의 모든 카드가 오픈되었을 때
-                            cardOpenWithCondition(cardManager,room,obcm);
+                            cardOpenWithCondition(cardManager,room,obcm,UserName);
                         }
                     }
                 }
@@ -659,9 +662,9 @@ public class Server extends JFrame implements Serializable {
                 }
             } // while
         } // run
-        public void cardOpenWithCondition(CardManager cardManager,Room room,ChatMsg obcm) {
+        public void cardOpenWithCondition(CardManager cardManager,Room room,ChatMsg obcm,String name) {
             // user의 모든 카드가 공개됨
-            if (cardManager.isSameCardOpens(UserName)) {
+            if (cardManager.isSameCardOpens(name)) {
                 // 한명(Winner) 빼고 모든 유저의 카드가 오픈되었을 때
                 if (cardManager.ownerIsOpened.size() == cardManager.observers.size()-1) {
                     ArrayList<String> rankList = cardManager.rank();
@@ -672,14 +675,14 @@ public class Server extends JFrame implements Serializable {
                         AppendText((i-rankList.size()+1)+"등은 "+rankList.get(i-rankList.size()));
                     }
                     AppendText("\t**********방 [" + room.roomName + "] Game Over**********");
-                    obcm = new ChatMsg(UserName, "GAMEOVER", "Winner is"+winner);
+                    obcm = new ChatMsg(name, "GAMEOVER", "Winner is"+winner);
                     obcm.setList(cardManager.ownerIsOpened); // 랭크 리스트를 보낸다
                     WriteRoomList(obcm, room);
                 }
                 // 아직 카드가 다 오픈되지 않은 유저가 있을 때 (3인 이상)
                 else {
-                    AppendText(UserName+"의 카드가 공개되었습니다.");
-                    obcm = new ChatMsg(UserName, "LOOSE", UserName);
+                    AppendText(name+"의 카드가 공개되었습니다.");
+                    obcm = new ChatMsg(name, "LOOSE", name);
                     WriteRoomUsers(obcm, room);
                 }
             }
@@ -929,7 +932,6 @@ public class Server extends JFrame implements Serializable {
         }
         // 카드 뽑기
         public String takeCard(String owner, String color) {
-            selectedNum = new ArrayList<>();
             Observer o = getObserverByName(owner);
             int randomIndex;
             Card c;
@@ -950,9 +952,14 @@ public class Server extends JFrame implements Serializable {
             c.setOwner(owner);
             System.out.println("뽑힌 컬러: " + c.cardColor);
             o.cards.add(c);
-            o.newCardIndex = o.cards.indexOf(c);
             o.sort();
+            o.newCardIndex = o.cards.indexOf(c);
             RoomCards.remove(randomIndex);// Room이 owner인 카드 벡터에서 랜덤 카드 제거
+
+            System.out.println(owner+"이 뽑은 카드 정보: "+c.cardColor + c.cardNum+", 인덱스: "+o.newCardIndex);
+
+            System.out.println(owner+"의 카드 리스트 업데이트");
+            o.print();
 
             return c.cardColor + c.cardNum; // 카드 색깔+카드 번호 리턴
         }
